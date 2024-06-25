@@ -2,7 +2,7 @@ import datetime
 from typing import Union
 from pydantic import BaseModel
 
-from fastapi import FastAPI, Header, status
+from fastapi import FastAPI, Request, Header, status
 
 app = FastAPI(docs_url=None, redoc_url=None)
 
@@ -35,16 +35,11 @@ class Probe(BaseModel):
     host: Union[VMS, None] = None
 
 
-# @app.get("/")
-# def read_root():
-#     return {"Hello": "World"}
+@app.get("/client")
+def read_client(request: Request):
+    return {"address": request.client.host, "port": request.client.port}
 
-
-# @app.get("/items/{item_id}")
-# def read_item(item_id: int, q: Union[str, None] = None):
-#     return {"item_id": item_id, "q": q}
-
-
+# TODO: Rename to telemetry
 @app.post("/probe", status_code=status.HTTP_201_CREATED)
 async def create_probe(probe: Probe, x_instance_id: str = Header()):
     print(probe)
