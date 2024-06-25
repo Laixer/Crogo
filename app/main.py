@@ -3,7 +3,7 @@ import datetime
 from typing import Union
 from pydantic import BaseModel
 
-from fastapi import FastAPI, HTTPException, Request, Header, Depends, status
+from fastapi import FastAPI, HTTPException, Request, Header, Depends, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 security_key = os.environ.get("SECURITY_KEY")
@@ -48,16 +48,20 @@ def get_client(request: Request):
 
 
 @app.post("/telemetry", status_code=status.HTTP_201_CREATED)
-@app.post("/probe", status_code=status.HTTP_201_CREATED)
-async def create_telemetry(probe: Probe, x_instance_id: str = Header()):
-    print(probe)
-    print(x_instance_id)
+async def create_telemetry(
+    probe: Probe,
+    x_instance_id: str = Header(),
+    credentials: HTTPAuthorizationCredentials = Security(security),
+):
+    # print(probe)
+    # print(x_instance_id)
+    pass
 
 
 @app.get("/command")
 async def fetch_command(
     x_instance_id: str = Header(),
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials = Security(security),
 ):
     if credentials.credentials != security_key:
         raise HTTPException(
@@ -65,5 +69,4 @@ async def fetch_command(
             detail="Invalid credentials",
         )
 
-    print(x_instance_id)
     return [{"command": "ls"}]
