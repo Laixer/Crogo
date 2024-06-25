@@ -10,7 +10,7 @@ security_key = os.environ.get("SECURITY_KEY")
 if not security_key:
     raise ValueError("SECURITY_KEY environment variable is not set")
 
-app = FastAPI(docs_url=None, redoc_url=None)
+app = FastAPI(docs_url=None, redoc_url=None)  # root_path="/api"
 security = HTTPBearer()
 
 
@@ -53,9 +53,9 @@ def get_client(request: Request):
     return {"address": request.client.host, "port": request.client.port}
 
 
-@app.get("/manifest")
+@app.get("/{instance_id}/manifest")
 async def fetch_manifest(
-    x_instance_id: str = Header(),
+    instance_id: str,
     credentials: HTTPAuthorizationCredentials = Security(security),
 ):
     if credentials.credentials != security_key:
@@ -66,14 +66,18 @@ async def fetch_manifest(
 
     return {
         "version": "1.0.0",
-        "datetime": datetime.datetime.now(),
+        "timestamp": "2024-06-25T16:38:44+0000",
         "repository": [
             "https://edge1.example.com",
         ],
         "cluster": {
             "name": "cluster-1",
-            "nodes": 3,
+            "id": "1b9b3603-e5da-42cf-ae14-f74bf0391b96",
+            "nodes": [
+                ("instance-1", instance_id),
+            ],
         },
+        "instance": {"name": "instance-1", "id": instance_id},
         "glonax": {
             "version": "3.5.9",
         },
