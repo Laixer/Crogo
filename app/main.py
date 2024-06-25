@@ -53,6 +53,33 @@ def get_client(request: Request):
     return {"address": request.client.host, "port": request.client.port}
 
 
+@app.get("/manifest")
+async def fetch_manifest(
+    x_instance_id: str = Header(),
+    credentials: HTTPAuthorizationCredentials = Security(security),
+):
+    if credentials.credentials != security_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
+    return {
+        "version": "1.0.0",
+        "datetime": datetime.datetime.now(),
+        "repository": [
+            "https://edge1.example.com",
+        ],
+        "cluster": {
+            "name": "cluster-1",
+            "nodes": 3,
+        },
+        "glonax": {
+            "version": "3.5.9",
+        },
+    }
+
+
 @app.post("/telemetry", status_code=status.HTTP_201_CREATED)
 async def create_telemetry(
     probe: Probe,
