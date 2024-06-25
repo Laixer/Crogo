@@ -42,6 +42,12 @@ class Probe(BaseModel):
     host: Union[VMS, None] = None
 
 
+class Command(BaseModel):
+    priority: int
+    command: str
+    value: Union[str, int, None] = None
+
+
 @app.get("/client")
 def get_client(request: Request):
     return {"address": request.client.host, "port": request.client.port}
@@ -74,4 +80,7 @@ async def fetch_command(
             detail="Invalid credentials",
         )
 
-    return [{"command": "ls"}]
+    return [
+        Command(priority=1, command="reboot"),
+        Command(priority=2, command="engine_start", value=950),
+    ]
