@@ -1,10 +1,17 @@
+import os
 import datetime
 from typing import Union
 from pydantic import BaseModel
 
-from fastapi import FastAPI, Request, Header, status
+from fastapi import FastAPI, HTTPException, Request, Header, Depends, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+security_key = os.environ.get("SECURITY_KEY")
+if not security_key:
+    raise ValueError("SECURITY_KEY environment variable is not set")
 
 app = FastAPI(docs_url=None, redoc_url=None)
+security = HTTPBearer()
 
 
 class Metadata(BaseModel):
@@ -36,11 +43,27 @@ class Probe(BaseModel):
 
 
 @app.get("/client")
-def read_client(request: Request):
+def get_client(request: Request):
     return {"address": request.client.host, "port": request.client.port}
 
-# TODO: Rename to telemetry
+
+@app.post("/telemetry", status_code=status.HTTP_201_CREATED)
 @app.post("/probe", status_code=status.HTTP_201_CREATED)
-async def create_probe(probe: Probe, x_instance_id: str = Header()):
+async def create_telemetry(probe: Probe, x_instance_id: str = Header()):
     print(probe)
     print(x_instance_id)
+
+
+@app.get("/command")
+async def fetch_command(
+    x_instance_id: str = Header(),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    if credentials.credentials != security_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
+    print(x_instance_id)
+    return [{"command": "ls"}]
