@@ -1,10 +1,10 @@
 import datetime
-from typing import List, Union
+from typing import Union
 from pydantic import BaseModel
 
 from fastapi import FastAPI, Header, status
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
 
 
 class Metadata(BaseModel):
