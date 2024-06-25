@@ -1,6 +1,7 @@
 import os
 import datetime
 from typing import Union
+from uuid import UUID
 from pydantic import BaseModel
 
 from fastapi import FastAPI, HTTPException, Request, Header, Depends, Security, status
@@ -12,6 +13,8 @@ if not security_key:
 
 app = FastAPI(docs_url=None, redoc_url=None)  # root_path="/api"
 security = HTTPBearer()
+
+# TODO: use the HttpUrl in model
 
 
 class Metadata(BaseModel):
@@ -45,7 +48,7 @@ class Probe(BaseModel):
 class Command(BaseModel):
     priority: int
     command: str
-    value: Union[str, int, None] = None
+    value: str | int | None = None
 
 
 @app.get("/client")
@@ -55,7 +58,7 @@ def get_client(request: Request):
 
 @app.get("/{instance_id}/manifest")
 async def fetch_manifest(
-    instance_id: str,
+    instance_id: UUID,
     credentials: HTTPAuthorizationCredentials = Security(security),
 ):
     if credentials.credentials != security_key:
