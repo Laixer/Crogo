@@ -53,9 +53,14 @@ async def create_telemetry(
     x_instance_id: str = Header(),
     credentials: HTTPAuthorizationCredentials = Security(security),
 ):
+    if credentials.credentials != security_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
     # print(probe)
     # print(x_instance_id)
-    pass
 
 
 @app.get("/command")
