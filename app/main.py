@@ -22,7 +22,7 @@ security_key = os.environ.get("SECURITY_KEY")
 if not security_key:
     raise ValueError("SECURITY_KEY environment variable is not set")
 
-app = FastAPI(docs_url=None, redoc_url=None)  # root_path="/api"
+app = FastAPI(docs_url=None, redoc_url=None, root_path="/api")
 security = HTTPBearer()
 
 
