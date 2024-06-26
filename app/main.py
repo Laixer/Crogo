@@ -202,42 +202,29 @@ async def websocket_endpoint(
             # await manager.send_personal_message(f"You wrote: {data}", websocket)
             # await manager.broadcast(f"Instance {instance_id} says: {data}")
 
-            # { "type": "signal", ... }
-            # { "type": "req_manifest", "status": "shipped", ... }
-            # { "type": "error", "code": 404, "message": "Not found" }
-
-            def request_manifest(data):
+            def request_manifest(instance_id, data):
                 pass
 
-            def signal_host(data):
+            def signal_host(instance_id, data):
                 print(data)
+
+            def signal_boot(instance_id, data):
+                print(f"Instance {instance_id} booted successfully")
 
             message_handlers = {
                 "req_manifest": request_manifest,
                 "sig_host": signal_host,
+                "sig_boot": signal_boot,
             }
 
             message_type = data.get("type")
             handler = message_handlers.get(message_type)
             if handler:
-                handler(data)
+                handler(instance_id, data)
             else:
-                raise ValueError(f"Unknown message type: {message_type}")
-
-            # try:
-            #     if message_type == "signal":
-            #         handle_new_order(data)
-            #     elif message_type == "update_status":
-            #         handle_update_status(data)
-            #     elif message_type == "error":
-            #         handle_error(data)
-            #     else:
-            #         raise ValueError(f"Unknown message type: {message_type}")
-            # except:
-            #     # Handle parsing errors or missing message types
-            #     # log_error(f"Error processing message: {e}")
-            #     pass
+                # raise ValueError(f"Unknown message type: {message_type}")
+                print(f"Unknown message type: {message_type}")
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-        await manager.broadcast(f"Instance {instance_id} disconnected")
+        # await manager.broadcast(f"Instance {instance_id} disconnected")
