@@ -14,6 +14,7 @@ if not security_key:
 app = FastAPI(docs_url=None, redoc_url=None)  # root_path="/api"
 security = HTTPBearer()
 
+
 # TODO: use the HttpUrl in model
 
 
@@ -91,6 +92,7 @@ async def fetch_manifest(
 async def create_telemetry(
     probe: Probe,
     instance_id: UUID,
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Security(security),
 ):
     if credentials.credentials != security_key:
@@ -99,8 +101,43 @@ async def create_telemetry(
             detail="Invalid credentials",
         )
 
-    # print(probe)
-    # print(x_instance_id)
+    # TODO: HACK, FIX THIS
+    from sqlalchemy.orm import Session
+    from .database import engine
+    from .schemas import Probe, Host
+
+    with Session(engine) as session:
+        # TODO: Remove version from Probe
+        session.add(
+            Probe(
+                instance=instance_id,
+                status="HEALTHY",
+                version=359,
+                memory=probe.host.mem_used / 1_024 / 1_024,
+                swap=probe.host.mem_used / 1_024 / 1_024,
+                cpu_1=probe.host.cpu1,
+                cpu_5=probe.host.cpu5,
+                cpu_15=probe.host.cpu15,
+                uptime=probe.host.uptime,
+            )
+        )
+
+        # TODO: Move remote_address to Probe
+        session.merge(
+            Host(
+                instance=instance_id,
+                hostname=probe.meta.hostname,
+                kernel=probe.meta.kernel,
+                model=probe.instance.model,
+                serial_number=probe.instance.serial_number,
+                version=359,
+                remote_address=request.client.host,
+            )
+        )
+
+        session.commit()
+
+    print(probe)
 
 
 @app.get("/{instance_id}/command")
