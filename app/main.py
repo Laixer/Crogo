@@ -65,36 +65,24 @@ class Command(BaseModel):
     value: str | int | None = None
 
 
+@app.get("/health")
+def health():
+    return {"status": 1}
+
+
 @app.get("/client")
 def get_client(request: Request):
-    return {"address": request.client.host, "port": request.client.port}
+    return {"address": request.client.host}
 
 
-@app.get("/{instance_id}/manifest")
-async def fetch_manifest(
-    instance_id: UUID,
-    credentials: HTTPAuthorizationCredentials = Security(security),
-):
-    if credentials.credentials != security_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-        )
-
+@app.get("/manifest")
+def fetch_manifest():
     return {
         "version": "1.0.0",
         "timestamp": "2024-06-25T16:38:44+0000",
         "repository": [
-            "https://edge1.example.com",
+            "https://edge.laixer.equipment",
         ],
-        "cluster": {
-            "name": "cluster-1",
-            "id": "1b9b3603-e5da-42cf-ae14-f74bf0391b96",
-            "nodes": [
-                ("instance-1", instance_id),
-            ],
-        },
-        "instance": {"name": "instance-1", "id": instance_id},
         "glonax": {
             "version": "3.5.9",
         },
