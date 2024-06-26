@@ -4,7 +4,17 @@ from typing import Union
 from uuid import UUID
 from pydantic import BaseModel
 
-from fastapi import FastAPI, HTTPException, Request, Header, Depends, Security, status
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Request,
+    Header,
+    Depends,
+    Security,
+    WebSocket,
+    WebSocketException,
+    status,
+)
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 security_key = os.environ.get("SECURITY_KEY")
@@ -112,7 +122,7 @@ async def create_telemetry(
             Probe(
                 instance=instance_id,
                 status="HEALTHY",
-                version=359, # TODO: Remove version from Probe
+                version=359,  # TODO: Remove version from Probe
                 memory=probe.host.mem_used / 1_024 / 1_024,
                 swap=probe.host.mem_used / 1_024 / 1_024,
                 cpu_1=probe.host.cpu1,
@@ -137,7 +147,7 @@ async def create_telemetry(
 
         session.commit()
 
-    print(probe)
+    # print(probe)
 
 
 @app.get("/{instance_id}/command")
@@ -155,3 +165,18 @@ async def fetch_command(
         Command(priority=1, command="reboot"),
         Command(priority=2, command="engine_start", value=950),
     ]
+
+
+@app.websocket("/{instance_id}/ws")
+async def websocket_endpoint(
+    instance_id: UUID,
+    websocket: WebSocket,
+    credentials: HTTPAuthorizationCredentials = Security(security),
+):
+    if credentials.credentials != security_key:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+
+    await websocket.accept()
+    while True:
+        data = await websocket.receive_text()
+        await websocket.send_text(f"Message text was: {data}")
