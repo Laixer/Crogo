@@ -158,18 +158,20 @@ async def create_telemetry(
     # print(probe)
 
 
-# TODO: If websocket works, remove this
-@app.get("/{instance_id}/command")
-async def fetch_command(
-    instance_id: UUID,
-    credentials: HTTPAuthorizationCredentials = Security(security),
-):
+async def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)):
     if credentials.credentials != security_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
         )
 
+
+# TODO: If websocket works, remove this
+@app.get("/{instance_id}/command")
+async def fetch_command(
+    instance_id: UUID,
+    dependencies=[Depends(verify_token)],
+):
     return [
         Command(priority=1, command="reboot"),
         Command(priority=2, command="engine_start", value=950),
