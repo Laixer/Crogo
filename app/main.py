@@ -112,7 +112,7 @@ async def create_telemetry(
             Probe(
                 instance=instance_id,
                 status="HEALTHY",
-                version=359,
+                version=359, # TODO: Remove version from Probe
                 memory=probe.host.mem_used / 1_024 / 1_024,
                 swap=probe.host.mem_used / 1_024 / 1_024,
                 cpu_1=probe.host.cpu1,
