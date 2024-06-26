@@ -171,10 +171,10 @@ async def fetch_command(
 async def websocket_endpoint(
     instance_id: UUID,
     websocket: WebSocket,
-    credentials: HTTPAuthorizationCredentials = Security(security),
+    # credentials: HTTPAuthorizationCredentials = Security(security),
 ):
-    if credentials.credentials != security_key:
-        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+    # if credentials.credentials != security_key:
+    #     raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
     await websocket.accept()
     while True:
