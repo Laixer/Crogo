@@ -12,6 +12,7 @@ from fastapi import (
     Depends,
     Security,
     WebSocket,
+    WebSocketDisconnect,
     WebSocketException,
     status,
 )
@@ -167,16 +168,76 @@ async def fetch_command(
     ]
 
 
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+
+manager = ConnectionManager()
+
+
 @app.websocket("/{instance_id}/ws")
 async def websocket_endpoint(
     instance_id: UUID,
     websocket: WebSocket,
-    # credentials: HTTPAuthorizationCredentials = Security(security),
 ):
-    # if credentials.credentials != security_key:
-    #     raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            # await manager.send_personal_message(f"You wrote: {data}", websocket)
+            # await manager.broadcast(f"Instance {instance_id} says: {data}")
 
-    await websocket.accept()
-    while True:
-        data = await websocket.receive_text()
-        await websocket.send_text(f"Message text was: {data}")
+            # { "type": "signal", ... }
+            # { "type": "req_manifest", "status": "shipped", ... }
+            # { "type": "error", "code": 404, "message": "Not found" }
+
+            def request_manifest(data):
+                pass
+
+            def signal_host(data):
+                print(data)
+
+            message_handlers = {
+                "req_manifest": request_manifest,
+                "sig_host": signal_host,
+            }
+
+            message_type = data.get("type")
+            handler = message_handlers.get(message_type)
+            if handler:
+                handler(data)
+            else:
+                raise ValueError(f"Unknown message type: {message_type}")
+
+            # try:
+            #     if message_type == "signal":
+            #         handle_new_order(data)
+            #     elif message_type == "update_status":
+            #         handle_update_status(data)
+            #     elif message_type == "error":
+            #         handle_error(data)
+            #     else:
+            #         raise ValueError(f"Unknown message type: {message_type}")
+            # except:
+            #     # Handle parsing errors or missing message types
+            #     # log_error(f"Error processing message: {e}")
+            #     pass
+
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        await manager.broadcast(f"Instance {instance_id} disconnected")
