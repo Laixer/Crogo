@@ -1,8 +1,9 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID, TIMESTAMP
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.sql import func
 import uuid
+
+from sqlalchemy.sql import func
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects.postgresql import UUID, TIMESTAMP
+from sqlalchemy import Column, Integer, String, Float, DateTime, UniqueConstraint
 
 
 Base = declarative_base()

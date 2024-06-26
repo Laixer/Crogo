@@ -18,6 +18,8 @@ from fastapi import (
 )
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.database import SessionLocal
+
 security_key = os.environ.get("SECURITY_KEY")
 if not security_key:
     raise ValueError("SECURITY_KEY environment variable is not set")
@@ -99,6 +101,23 @@ async def fetch_manifest(
     }
 
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# @app.post("/users/", response_model=schemas.User)
+# def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+#     db_user = crud.get_user_by_email(db, email=user.email)
+#     if db_user:
+#         raise HTTPException(status_code=400, detail="Email already registered")
+#     return crud.create_user(db=db, user=user)
+
+
+# TODO: Maybe remove async
 @app.post("/{instance_id}/telemetry", status_code=status.HTTP_201_CREATED)
 async def create_telemetry(
     probe: Probe,
@@ -151,6 +170,7 @@ async def create_telemetry(
     # print(probe)
 
 
+# TODO: If websocket works, remove this
 @app.get("/{instance_id}/command")
 async def fetch_command(
     instance_id: UUID,
@@ -190,8 +210,26 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
+@app.websocket("/app/ws")
+async def app_connector(
+    websocket: WebSocket,
+):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_json()
+
+            # Depending on the message:
+            # - Send a message to a specific instance
+            # - Bind the instance connector to the current websocket
+            # - Broadcast a message to all instances in a cluster
+
+    except WebSocketDisconnect:
+        pass
+
+
 @app.websocket("/{instance_id}/ws")
-async def websocket_endpoint(
+async def instance_connector(
     instance_id: UUID,
     websocket: WebSocket,
 ):
