@@ -87,10 +87,10 @@ async def fetch_manifest(
     }
 
 
-@app.post("/telemetry", status_code=status.HTTP_201_CREATED)
+@app.post("/{instance_id}/telemetry", status_code=status.HTTP_201_CREATED)
 async def create_telemetry(
     probe: Probe,
-    x_instance_id: str = Header(),
+    instance_id: UUID,
     credentials: HTTPAuthorizationCredentials = Security(security),
 ):
     if credentials.credentials != security_key:
@@ -103,9 +103,9 @@ async def create_telemetry(
     # print(x_instance_id)
 
 
-@app.get("/command")
+@app.get("/{instance_id}/command")
 async def fetch_command(
-    x_instance_id: str = Header(),
+    instance_id: UUID,
     credentials: HTTPAuthorizationCredentials = Security(security),
 ):
     if credentials.credentials != security_key:
