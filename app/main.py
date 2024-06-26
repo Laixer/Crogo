@@ -18,7 +18,9 @@ from fastapi import (
 )
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.config import Settings
 from app.database import SessionLocal
+
 
 security_key = os.environ.get("SECURITY_KEY")
 if not security_key:
@@ -158,6 +160,7 @@ async def create_telemetry(
     # print(probe)
 
 
+# TODO: Does not work
 async def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)):
     if credentials.credentials != security_key:
         raise HTTPException(
