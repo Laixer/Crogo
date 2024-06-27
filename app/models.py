@@ -1,7 +1,4 @@
-import datetime
-
 from pydantic import BaseModel, Field, AnyHttpUrl
-from typing import Optional
 from datetime import datetime
 
 # TODO: use the HttpUrl in model
@@ -10,7 +7,7 @@ from datetime import datetime
 class Metadata(BaseModel):
     hostname: str
     kernel: str
-    datetime: datetime.datetime
+    datetime: datetime
     remote_address: str | None = None
 
 
@@ -30,7 +27,7 @@ class PyVMS(BaseModel):
     swap_total: int
     cpu_load: list[float]
     uptime: int
-    timestamp: datetime.datetime
+    timestamp: datetime
 
 
 class Instance(BaseModel):
@@ -62,7 +59,7 @@ class ManifestGlonax(BaseModel):
 
 class Manifest(BaseModel):
     version: str = Field(description="Manifest version")
-    timestamp: datetime.datetime = Field(description="Timestamp in ISO 8601 format")
+    timestamp: datetime = Field(description="Timestamp in ISO 8601 format")
     repository: list[ManifestRepository] = Field(description="List of repository URLs")
     glonax: ManifestGlonax | None = Field(
         None, description="Glonax-related information"
