@@ -168,24 +168,8 @@ async def instance_connector(
 
                     if vms_last_update_elapsed > 20:
                         vms = PyVMS(**message.data)
+                        repository.create_telemetry2(db, instance_id, vms)
 
-                        print(vms)
-
-                        db.add(
-                            schemas.Telemetry(
-                                instance=instance_id,
-                                status="HEALTHY",
-                                memory=vms.memory_used / 1_024 / 1_024,
-                                swap=vms.swap_used / 1_024 / 1_024,
-                                cpu_1=vms.cpu_load[0],
-                                cpu_5=vms.cpu_load[1],
-                                cpu_15=vms.cpu_load[2],
-                                uptime=vms.uptime,
-                                remote_address="127.0.0.2",
-                            )
-                        )
-
-                        db.commit()
                         vms_last_update = time.time()
                 elif message.topic == "status":
                     print(f"Status: {message.data}")

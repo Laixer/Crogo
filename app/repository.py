@@ -1,3 +1,4 @@
+from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app import schemas, models
@@ -29,6 +30,24 @@ def create_telemetry(db: Session, model: models.Probe):
             cpu_15=model.host.cpu15,
             uptime=model.host.uptime,
             remote_address=model.meta.remote_address,
+        )
+    )
+
+    db.commit()
+
+
+def create_telemetry2(db: Session, instance_id: UUID, model: models.PyVMS):
+    db.add(
+        schemas.Telemetry(
+            instance=instance_id,
+            status="HEALTHY",
+            memory=model.memory_used / 1_024 / 1_024,
+            swap=model.swap_used / 1_024 / 1_024,
+            cpu_1=model.cpu_load[0],
+            cpu_5=model.cpu_load[1],
+            cpu_15=model.cpu_load[2],
+            uptime=model.uptime,
+            remote_address="127.0.0.2",
         )
     )
 

@@ -22,6 +22,16 @@ class VMS(BaseModel):
     uptime: int
 
 
+class PyVMS(BaseModel):
+    memory_used: int
+    memory_total: int
+    swap_used: int
+    swap_total: int
+    cpu_load: list[float]
+    uptime: int
+    timestamp: datetime.datetime
+
+
 class Instance(BaseModel):
     id: str
     model: str
