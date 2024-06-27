@@ -17,50 +17,15 @@ from fastapi import (
     status,
 )
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
 
 from app.config import SettingsLocal
 from app.database import SessionLocal
-
+from app.repository import db_create_telemetry
+from app.models import Probe, Command
 
 app = FastAPI(docs_url=None, redoc_url=None, root_path="/api")
 security = HTTPBearer()
-
-
-# TODO: use the HttpUrl in model
-
-
-class Metadata(BaseModel):
-    hostname: str
-    kernel: str
-    datetime: datetime.datetime
-
-
-class VMS(BaseModel):
-    cpu1: float
-    cpu5: float
-    cpu15: float
-    mem_used: int
-    mem_total: int
-    uptime: int
-
-
-class Instance(BaseModel):
-    id: str
-    model: str
-    # version: str
-    serial_number: str
-
-
-class Probe(BaseModel):
-    meta: Metadata
-    instance: Instance
-    host: Union[VMS, None] = None
-
-
-class Command(BaseModel):
-    priority: int
-    command: str
-    value: str | int | None = None
 
 
 @app.get("/health")
@@ -105,11 +70,11 @@ def get_db():
 
 # TODO: Maybe remove async
 @app.post("/{instance_id}/telemetry", status_code=status.HTTP_201_CREATED)
-async def create_telemetry(
+async def post_telemetry(
     probe: Probe,
     instance_id: UUID,
-    request: Request,
     credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db),
 ):
     if credentials.credentials != SettingsLocal.security_key:
         raise HTTPException(
@@ -117,43 +82,8 @@ async def create_telemetry(
             detail="Invalid credentials",
         )
 
-    # TODO: HACK, FIX THIS
-    from sqlalchemy.orm import Session
-    from .database import engine
-    from .schemas import Probe, Host
-
-    with Session(engine) as session:
-        # TODO: Remove version from Probe
-        session.add(
-            Probe(
-                instance=instance_id,
-                status="HEALTHY",
-                version=359,  # TODO: Remove version from Probe
-                memory=probe.host.mem_used / 1_024 / 1_024,
-                swap=probe.host.mem_used / 1_024 / 1_024,
-                cpu_1=probe.host.cpu1,
-                cpu_5=probe.host.cpu5,
-                cpu_15=probe.host.cpu15,
-                uptime=probe.host.uptime,
-            )
-        )
-
-        # TODO: Move remote_address to Probe
-        session.merge(
-            Host(
-                instance=instance_id,
-                hostname=probe.meta.hostname,
-                kernel=probe.meta.kernel,
-                model=probe.instance.model,
-                serial_number=probe.instance.serial_number,
-                version=359,
-                remote_address=request.client.host,
-            )
-        )
-
-        session.commit()
-
-    # print(probe)
+    probe.instance.id = instance_id
+    db_create_telemetry(db, probe)
 
 
 # TODO: Does not work
@@ -167,7 +97,7 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Security(secu
 
 # TODO: If websocket works, remove this
 @app.get("/{instance_id}/command")
-async def fetch_command(
+async def get_command(
     instance_id: UUID,
     dependencies=[Depends(verify_token)],
 ):

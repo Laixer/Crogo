@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 
-from app import schemas
-from app.main import Probe, Host
+from app import schemas, models
+
+# from app.main import Probe, Host
 
 
 # def get_user(db: Session, user_id: int):
@@ -16,7 +17,7 @@ from app.main import Probe, Host
 #     return db.query(models.User).offset(skip).limit(limit).all()
 
 
-def create_telemetry(db: Session, model: Probe):
+def db_create_telemetry(db: Session, model: models.Probe):
     # TODO: Remove version from Probe
     db.add(
         schemas.Probe(
