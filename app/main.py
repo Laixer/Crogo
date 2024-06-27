@@ -18,13 +18,9 @@ from fastapi import (
 )
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.config import Settings
+from app.config import SettingsLocal
 from app.database import SessionLocal
 
-
-security_key = os.environ.get("SECURITY_KEY")
-if not security_key:
-    raise ValueError("SECURITY_KEY environment variable is not set")
 
 app = FastAPI(docs_url=None, redoc_url=None, root_path="/api")
 security = HTTPBearer()
@@ -115,7 +111,7 @@ async def create_telemetry(
     request: Request,
     credentials: HTTPAuthorizationCredentials = Security(security),
 ):
-    if credentials.credentials != security_key:
+    if credentials.credentials != SettingsLocal.security_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
@@ -162,7 +158,7 @@ async def create_telemetry(
 
 # TODO: Does not work
 async def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)):
-    if credentials.credentials != security_key:
+    if credentials.credentials != SettingsLocal.security_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",

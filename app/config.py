@@ -2,8 +2,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "Awesome API"
-    admin_email: str
-    items_per_user: int = 50
+    security_key: str
+    database_url: str
 
     model_config = SettingsConfigDict(env_file=".env")
+
+
+SettingsLocal = Settings()
