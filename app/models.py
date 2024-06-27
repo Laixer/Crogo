@@ -10,6 +10,7 @@ class Metadata(BaseModel):
     hostname: str
     kernel: str
     datetime: datetime.datetime
+    remote_address: str | None = None
 
 
 class VMS(BaseModel):

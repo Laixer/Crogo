@@ -9,18 +9,15 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, UniqueConstrain
 Base = declarative_base()
 
 
-class Probe(Base):
-    __tablename__ = "probe"
+class Telemetry(Base):
+    __tablename__ = "telemetry"
     __table_args__ = (UniqueConstraint("instance", "created_at"),)
 
-    created_at = Column(
-        TIMESTAMP(timezone=True), server_default=func.now(), primary_key=True
-    )
-    instance = Column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, nullable=False
-    )
+    id = Column(Integer, primary_key=True)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    instance = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
     status = Column(String, nullable=False)
-    version = Column(Integer, nullable=False)
+    remote_address = Column(String)
     # location = Column(POINT)
     altitude = Column(Float)
     speed = Column(Float)
@@ -46,7 +43,6 @@ class Host(Base):
     model = Column(String)
     serial_number = Column(String)
     version = Column(Integer, nullable=False)
-    remote_address = Column(String)
 
     def __repr__(self):
         return f"<Host(instance={self.instance}, hostname='{self.hostname}')>"

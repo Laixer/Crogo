@@ -17,23 +17,21 @@ from app import schemas, models
 #     return db.query(models.User).offset(skip).limit(limit).all()
 
 
-def db_create_telemetry(db: Session, model: models.Probe):
-    # TODO: Remove version from Probe
+def create_telemetry(db: Session, model: models.Probe):
     db.add(
-        schemas.Probe(
+        schemas.Telemetry(
             instance=model.instance.id,
             status="HEALTHY",
-            version=359,  # TODO: Remove version from Probe
             memory=model.host.mem_used / 1_024 / 1_024,
             swap=model.host.mem_used / 1_024 / 1_024,
             cpu_1=model.host.cpu1,
             cpu_5=model.host.cpu5,
             cpu_15=model.host.cpu15,
             uptime=model.host.uptime,
+            remote_address=model.meta.remote_address,
         )
     )
 
-    # TODO: Move remote_address to Probe
     db.merge(
         schemas.Host(
             instance=model.instance.id,
@@ -42,7 +40,6 @@ def db_create_telemetry(db: Session, model: models.Probe):
             model=model.instance.model,
             serial_number=model.instance.serial_number,
             version=359,
-            # remote_address=request.client.host,
         )
     )
 
