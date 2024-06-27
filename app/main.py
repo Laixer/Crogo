@@ -109,10 +109,14 @@ manager = ConnectionManager()
 async def app_connector(
     websocket: WebSocket,
 ):
-    await websocket.accept()
+    await manager.connect(websocket)
     try:
         while True:
             data = await websocket.receive_json()
+            print(data)
+
+            # await manager.send_personal_message(f"You wrote: {data}", websocket)
+            # await manager.broadcast(f"Instance {instance_id} says: {data}")
 
             # Depending on the message:
             # - Send a message to a specific instance
@@ -120,44 +124,95 @@ async def app_connector(
             # - Broadcast a message to all instances in a cluster
 
     except WebSocketDisconnect:
-        pass
+        manager.disconnect(websocket)
+
+
+class PyVMS(BaseModel):
+    memory_used: int
+    memory_total: int
+    swap_used: int
+    swap_total: int
+    cpu_load: list[float]
+    uptime: int
+    timestamp: datetime.datetime
+
+
+class ChannelMessage(BaseModel):
+    type: str
+    topic: str | None = None
+    data: dict | None = None
+
+
+vms_last_update = time.time()
 
 
 @app.websocket("/{instance_id}/ws")
 async def instance_connector(
     instance_id: UUID,
     websocket: WebSocket,
+    db: Session = Depends(get_db),
 ):
-    await manager.connect(websocket)
+    await websocket.accept()
     try:
         while True:
             data = await websocket.receive_json()
-            # await manager.send_personal_message(f"You wrote: {data}", websocket)
-            # await manager.broadcast(f"Instance {instance_id} says: {data}")
 
-            def request_manifest(instance_id, data):
-                pass
+            async def on_signal(instance_id: UUID, message: ChannelMessage):
+                global vms_last_update
 
-            def signal_host(instance_id, data):
-                print(data)
+                await manager.broadcast(message.model_dump_json())
 
-            def signal_boot(instance_id, data):
-                print(f"Instance {instance_id} booted successfully")
+                if message.topic == "vms":
+                    vms_last_update_elapsed = time.time() - vms_last_update
+                    print(f"Elapsed: {vms_last_update_elapsed}")
 
-            message_handlers = {
-                "req_manifest": request_manifest,
-                "sig_host": signal_host,
-                "sig_boot": signal_boot,
-            }
+                    if vms_last_update_elapsed > 20:
+                        vms = PyVMS(**message.data)
 
-            message_type = data.get("type")
-            handler = message_handlers.get(message_type)
-            if handler:
-                handler(instance_id, data)
-            else:
-                # raise ValueError(f"Unknown message type: {message_type}")
-                print(f"Unknown message type: {message_type}")
+                        print(vms)
+
+                        db.add(
+                            schemas.Telemetry(
+                                instance=instance_id,
+                                status="HEALTHY",
+                                memory=vms.memory_used / 1_024 / 1_024,
+                                swap=vms.swap_used / 1_024 / 1_024,
+                                cpu_1=vms.cpu_load[0],
+                                cpu_5=vms.cpu_load[1],
+                                cpu_15=vms.cpu_load[2],
+                                uptime=vms.uptime,
+                                remote_address="127.0.0.2",
+                            )
+                        )
+
+                        db.commit()
+                        vms_last_update = time.time()
+                elif message.topic == "status":
+                    print(f"Status: {message.data}")
+                elif message.topic == "engine":
+                    print(f"Engine: {message.data}")
+
+            def on_notify(instance_id: UUID, message: ChannelMessage):
+                if message.topic == "boot":
+                    print(f"Notify: instance {instance_id} successfully booted")
+
+            try:
+                message = ChannelMessage(**data)
+
+                if message.type == "signal":
+                    await on_signal(instance_id, message)
+                elif message.type == "notify":
+                    on_notify(instance_id, message)
+
+            except ValidationError as e:
+                message = ChannelMessage(
+                    type="error",
+                    topic="validation",
+                )
+
+                await websocket.send_json(message.model_dump_json())
 
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        # manager.disconnect(websocket)
+        pass
         # await manager.broadcast(f"Instance {instance_id} disconnected")
