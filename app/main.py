@@ -47,19 +47,16 @@ def get_client(request: Request) -> dict[str, str]:
     return {"address": request.client.host}
 
 
-# TODO: Turn manifest into a Pydantic model
 @app.get("/manifest")
-def fetch_manifest():
-    return {
-        "version": "1.0.0",
-        "timestamp": "2024-06-25T16:38:44+0000",
-        "repository": [
-            "https://edge.laixer.equipment",
-        ],
-        "glonax": {
-            "version": "3.5.9",
-        },
-    }
+def get_manifest() -> models.Manifest:
+    manifest = models.Manifest(
+        version="1.0.0",
+        timestamp=datetime.datetime.now(),
+        repository=["https://edge.laixer.equipment"],
+        glonax=models.ManifestGlonax(version="3.5.9"),
+    )
+
+    return manifest
 
 
 # TODO: Replace the telemetry model with the PyVMS model
@@ -127,16 +124,6 @@ async def app_connector(
         manager.disconnect(websocket)
 
 
-class PyVMS(BaseModel):
-    memory_used: int
-    memory_total: int
-    swap_used: int
-    swap_total: int
-    cpu_load: list[float]
-    uptime: int
-    timestamp: datetime.datetime
-
-
 class ChannelMessage(BaseModel):
     type: str
     topic: str | None = None
@@ -167,7 +154,7 @@ async def instance_connector(
                     print(f"Elapsed: {vms_last_update_elapsed}")
 
                     if vms_last_update_elapsed > 20:
-                        vms = PyVMS(**message.data)
+                        vms = models.PyVMS(**message.data)
                         repository.create_telemetry2(db, instance_id, vms)
 
                         vms_last_update = time.time()
@@ -197,6 +184,4 @@ async def instance_connector(
                 await websocket.send_json(message.model_dump_json())
 
     except WebSocketDisconnect:
-        # manager.disconnect(websocket)
         pass
-        # await manager.broadcast(f"Instance {instance_id} disconnected")

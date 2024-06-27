@@ -1,7 +1,8 @@
 import datetime
 
-from pydantic import BaseModel
-
+from pydantic import BaseModel, Field, AnyHttpUrl
+from typing import Optional
+from datetime import datetime
 
 # TODO: use the HttpUrl in model
 
@@ -49,3 +50,20 @@ class Command(BaseModel):
     priority: int
     command: str
     value: str | int | None = None
+
+
+class ManifestRepository(BaseModel):
+    url: AnyHttpUrl
+
+
+class ManifestGlonax(BaseModel):
+    version: str
+
+
+class Manifest(BaseModel):
+    version: str = Field(description="Manifest version")
+    timestamp: datetime = Field(description="Timestamp in ISO 8601 format")
+    repository: list[ManifestRepository] = Field(description="List of repository URLs")
+    glonax: ManifestGlonax | None = Field(
+        None, description="Glonax-related information"
+    )
