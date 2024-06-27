@@ -38,10 +38,10 @@ class Host(Base):
     __tablename__ = "host"
 
     instance = Column(UUID(as_uuid=True), primary_key=True)
-    hostname = Column(String)
-    kernel = Column(String)
-    model = Column(String)
-    serial_number = Column(String)
+    hostname = Column(String)  # TODO: should be not null
+    kernel = Column(String)  # TODO: should be not null
+    model = Column(String)  # TODO: should be not null
+    serial_number = Column(String)  # TODO: should be unique, not null
     version = Column(Integer, nullable=False)
 
     def __repr__(self):

@@ -77,6 +77,7 @@ async def post_telemetry(
 
     probe.instance.id = instance_id
     probe.meta.remote_address = request.client.host
+    repository.update_host(db, probe)
     repository.create_telemetry(db, probe)
 
 
