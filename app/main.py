@@ -1,8 +1,9 @@
 import os
+import time
 import datetime
 from typing import Union
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from fastapi import (
     FastAPI,
@@ -19,7 +20,7 @@ from fastapi import (
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app import repository
+from app import repository, models, schemas
 from app.config import SettingsLocal
 from app.database import SessionLocal
 from app.models import Probe, Command
@@ -28,16 +29,25 @@ app = FastAPI(docs_url=None, redoc_url=None, root_path="/api")
 security = HTTPBearer()
 
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 @app.get("/health")
-def health():
+def health() -> dict[str, int]:
     return {"status": 1}
 
 
 @app.get("/client")
-def get_client(request: Request):
+def get_client(request: Request) -> dict[str, str]:
     return {"address": request.client.host}
 
 
+# TODO: Turn manifest into a Pydantic model
 @app.get("/manifest")
 def fetch_manifest():
     return {
@@ -52,17 +62,9 @@ def fetch_manifest():
     }
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-# TODO: Maybe remove async
+# TODO: Replace the telemetry model with the PyVMS model
 @app.post("/{instance_id}/telemetry", status_code=status.HTTP_201_CREATED)
-async def post_telemetry(
+def post_telemetry(
     probe: Probe,
     instance_id: UUID,
     request: Request,
@@ -79,27 +81,6 @@ async def post_telemetry(
     probe.meta.remote_address = request.client.host
     repository.update_host(db, probe)
     repository.create_telemetry(db, probe)
-
-
-# TODO: Does not work
-async def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)):
-    if credentials.credentials != SettingsLocal.security_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-        )
-
-
-# TODO: If websocket works, remove this
-@app.get("/{instance_id}/command")
-async def get_command(
-    instance_id: UUID,
-    dependencies=[Depends(verify_token)],
-):
-    return [
-        Command(priority=1, command="reboot"),
-        Command(priority=2, command="engine_start", value=950),
-    ]
 
 
 class ConnectionManager:
