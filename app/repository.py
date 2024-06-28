@@ -18,25 +18,25 @@ from app import schemas, models
 #     return db.query(models.User).offset(skip).limit(limit).all()
 
 
-def create_telemetry(db: Session, model: models.Probe):
-    db.add(
-        schemas.Telemetry(
-            instance=model.instance.id,
-            status="HEALTHY",
-            memory=model.host.mem_used / 1_024 / 1_024,
-            swap=model.host.mem_used / 1_024 / 1_024,
-            cpu_1=model.host.cpu1,
-            cpu_5=model.host.cpu5,
-            cpu_15=model.host.cpu15,
-            uptime=model.host.uptime,
-            remote_address=model.meta.remote_address,
-        )
-    )
+# def create_telemetry(db: Session, model: models.Probe):
+#     db.add(
+#         schemas.Telemetry(
+#             instance=model.instance.id,
+#             status="HEALTHY",
+#             memory=model.host.mem_used / 1_024 / 1_024,
+#             swap=model.host.mem_used / 1_024 / 1_024,
+#             cpu_1=model.host.cpu1,
+#             cpu_5=model.host.cpu5,
+#             cpu_15=model.host.cpu15,
+#             uptime=model.host.uptime,
+#             remote_address=model.meta.remote_address,
+#         )
+#     )
 
-    db.commit()
+#     db.commit()
 
 
-def create_telemetry2(db: Session, instance_id: UUID, model: models.PyVMS):
+def create_telemetry(db: Session, instance_id: UUID, model: models.VMS):
     db.add(
         schemas.Telemetry(
             instance=instance_id,

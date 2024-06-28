@@ -9,22 +9,24 @@ class Metadata(BaseModel):
     kernel: str
     datetime: datetime
     remote_address: str | None = None
+    # memory_total: int
+    # cpu_count: int
+
+
+# class VMS(BaseModel):
+#     cpu1: float
+#     cpu5: float
+#     cpu15: float
+#     mem_used: int
+#     mem_total: int
+#     uptime: int
 
 
 class VMS(BaseModel):
-    cpu1: float
-    cpu5: float
-    cpu15: float
-    mem_used: int
-    mem_total: int
-    uptime: int
-
-
-class PyVMS(BaseModel):
     memory_used: int
-    memory_total: int
-    swap_used: int
-    swap_total: int
+    memory_total: int # TODO: Remove this field
+    swap_used: int # TODO: Remove this field
+    swap_total: int # TODO: Remove this field
     cpu_load: list[float]
     uptime: int
     timestamp: datetime
@@ -37,10 +39,10 @@ class Instance(BaseModel):
     serial_number: str
 
 
-class Probe(BaseModel):
+class HostConfig(BaseModel):
     meta: Metadata
     instance: Instance
-    host: VMS | None = None
+    # host: VMS | None = None
 
 
 class Command(BaseModel):

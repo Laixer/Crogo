@@ -60,9 +60,26 @@ def get_manifest() -> models.Manifest:
 
 
 # TODO: Replace the telemetry model with the PyVMS model
+@app.put("/{instance_id}/host", status_code=status.HTTP_201_CREATED)
+def put_telemetry(
+    host: models.HostConfig,
+    instance_id: UUID,
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db),
+):
+    if credentials.credentials != SettingsLocal.security_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
+    # TODO: Replace the telemetry model with the PyVMS model
+
+
+# TODO: Replace the telemetry model with the PyVMS model
 @app.post("/{instance_id}/telemetry", status_code=status.HTTP_201_CREATED)
 def post_telemetry(
-    probe: Probe,
+    vms: models.VMS,
     instance_id: UUID,
     request: Request,
     credentials: HTTPAuthorizationCredentials = Security(security),
@@ -74,10 +91,10 @@ def post_telemetry(
             detail="Invalid credentials",
         )
 
-    probe.instance.id = instance_id
-    probe.meta.remote_address = request.client.host
-    repository.update_host(db, probe)
-    repository.create_telemetry(db, probe)
+    # probe.instance.id = instance_id
+    # probe.meta.remote_address = request.client.host
+    # repository.update_host(db, probe)
+    repository.create_telemetry(db, instance_id, vms)
 
 
 class ConnectionManager:
@@ -154,8 +171,8 @@ async def instance_connector(
                     print(f"Elapsed: {vms_last_update_elapsed}")
 
                     if vms_last_update_elapsed > 20:
-                        vms = models.PyVMS(**message.data)
-                        repository.create_telemetry2(db, instance_id, vms)
+                        vms = models.VMS(**message.data)
+                        repository.create_telemetry(db, instance_id, vms)
 
                         vms_last_update = time.time()
                 elif message.topic == "status":
