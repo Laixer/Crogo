@@ -54,7 +54,7 @@ def create_telemetry(db: Session, instance_id: UUID, model: models.VMS):
     db.commit()
 
 
-def update_host(db: Session, model: models.Probe):
+def update_host(db: Session, model: models.HostConfig):
     db.merge(
         schemas.Host(
             instance=model.instance.id,

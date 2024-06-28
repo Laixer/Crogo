@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from app import repository, models, schemas
 from app.config import SettingsLocal
 from app.database import SessionLocal
-from app.models import Probe, Command
+from app.models import Command
 
 app = FastAPI(docs_url=None, redoc_url=None, root_path="/api")
 security = HTTPBearer()
