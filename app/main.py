@@ -59,6 +59,12 @@ def get_manifest() -> models.Manifest:
     return manifest
 
 
+@app.get("/instance")
+def get_client():
+    # TODO Return list of all instances currently connected
+    return {"instances": []}
+
+
 # TODO: Replace the telemetry model with the PyVMS model
 @app.put("/{instance_id}/host", status_code=status.HTTP_201_CREATED)
 def put_telemetry(
@@ -119,8 +125,9 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-@app.websocket("/app/ws")
+@app.websocket("/app/{instance_id}/ws")
 async def app_connector(
+    instance_id: UUID,
     websocket: WebSocket,
 ):
     await manager.connect(websocket)
@@ -133,7 +140,6 @@ async def app_connector(
             # await manager.broadcast(f"Instance {instance_id} says: {data}")
 
             # Depending on the message:
-            # - Send a message to a specific instance
             # - Bind the instance connector to the current websocket
             # - Broadcast a message to all instances in a cluster
 
