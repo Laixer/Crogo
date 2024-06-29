@@ -6,34 +6,12 @@ from app import schemas, models
 # from app.main import Probe, Host
 
 
-# def get_user(db: Session, user_id: int):
-#     return db.query(models.User).filter(models.User.id == user_id).first()
-
-
-# def get_user_by_email(db: Session, email: str):
-#     return db.query(models.User).filter(models.User.email == email).first()
+def get_host(db: Session, instance_id: UUID) -> schemas.Host:
+    return db.query(schemas.Host).filter(schemas.Host.instance == instance_id).first()
 
 
 # def get_users(db: Session, skip: int = 0, limit: int = 100):
 #     return db.query(models.User).offset(skip).limit(limit).all()
-
-
-# def create_telemetry(db: Session, model: models.Probe):
-#     db.add(
-#         schemas.Telemetry(
-#             instance=model.instance.id,
-#             status="HEALTHY",
-#             memory=model.host.mem_used / 1_024 / 1_024,
-#             swap=model.host.mem_used / 1_024 / 1_024,
-#             cpu_1=model.host.cpu1,
-#             cpu_5=model.host.cpu5,
-#             cpu_15=model.host.cpu15,
-#             uptime=model.host.uptime,
-#             remote_address=model.meta.remote_address,
-#         )
-#     )
-
-#     db.commit()
 
 
 def create_telemetry(db: Session, instance_id: UUID, model: models.VMS):
@@ -67,7 +45,3 @@ def update_host(db: Session, model: models.HostConfig):
     )
 
     db.commit()
-
-
-# def get_items(db: Session, skip: int = 0, limit: int = 100):
-#     return db.query(models.Item).offset(skip).limit(limit).all()

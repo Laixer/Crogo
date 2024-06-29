@@ -8,25 +8,15 @@ class Metadata(BaseModel):
     hostname: str
     kernel: str
     datetime: datetime
-    remote_address: str | None = None
-    # memory_total: int
-    # cpu_count: int
-
-
-# class VMS(BaseModel):
-#     cpu1: float
-#     cpu5: float
-#     cpu15: float
-#     mem_used: int
-#     mem_total: int
-#     uptime: int
+    # memory_total: int # TODO: Add this field
+    # cpu_count: int # TODO: Add this field
 
 
 class VMS(BaseModel):
     memory_used: int
-    memory_total: int # TODO: Remove this field
-    swap_used: int # TODO: Remove this field
-    swap_total: int # TODO: Remove this field
+    memory_total: int  # TODO: Remove this field
+    swap_used: int  # TODO: Remove this field
+    swap_total: int  # TODO: Remove this field
     cpu_load: list[float]
     uptime: int
     timestamp: datetime

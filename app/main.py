@@ -21,6 +21,7 @@ from app.config import SettingsLocal
 from app.database import SessionLocal
 
 app = FastAPI(docs_url=None, redoc_url=None, root_path="/api")
+
 security = HTTPBearer()
 
 
@@ -156,9 +157,8 @@ async def app_connector(
         pass
 
 
-# TODO: Replace the telemetry model with the PyVMS model
 @app.put("/{instance_id}/host", status_code=status.HTTP_201_CREATED)
-def put_telemetry(
+def put_host(
     host: models.HostConfig,
     instance_id: UUID,
     credentials: HTTPAuthorizationCredentials = Security(security),
@@ -171,6 +171,23 @@ def put_telemetry(
         )
 
     # TODO: Replace the telemetry model with the PyVMS model
+    # repository.update_host(db, probe)
+
+
+@app.get("/{instance_id}/host")
+def get_host(
+    instance_id: UUID,
+    # credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db),
+):
+    # if credentials.credentials != SettingsLocal.security_key:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Invalid credentials",
+    #     )
+
+    # TODO: Replace the telemetry model with the PyVMS model
+    return repository.get_host(db, instance_id)
 
 
 # TODO: Replace the telemetry model with the PyVMS model
