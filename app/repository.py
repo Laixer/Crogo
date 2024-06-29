@@ -32,12 +32,15 @@ def update_host(db: Session, instance_id: UUID, model: models.HostConfig):
     db.commit()
 
 
-def get_telemetry(db: Session, instance_id: UUID, limit: int = 5) -> list[models.VMS]:
+def get_telemetry(
+    db: Session, instance_id: UUID, offset: int = 0, limit: int = 5
+) -> list[models.VMS]:
     telemetry = (
         db.query(schemas.Telemetry)
         .filter(schemas.Telemetry.instance == instance_id)
         .order_by(schemas.Telemetry.created_at.desc())
-        .limit(limit)
+        .offset(offset)
+        .limit(min(limit, 50))
         .all()
     )
 

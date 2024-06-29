@@ -188,6 +188,23 @@ def get_host(
     return repository.get_host(db, instance_id)
 
 
+@app.get("/{instance_id}/telemetry")
+def get_telemetry(
+    instance_id: UUID,
+    skip: int = 0,
+    limit: int = 5,
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    db: Session = Depends(get_db),
+) -> list[models.VMS]:
+    if credentials.credentials != SettingsLocal.security_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
+    return repository.get_telemetry(db, instance_id, skip, limit)
+
+
 # TODO: Replace the telemetry model with the PyVMS model
 @app.post("/{instance_id}/telemetry", status_code=status.HTTP_201_CREATED)
 def post_telemetry(
