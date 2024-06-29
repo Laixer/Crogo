@@ -1,7 +1,5 @@
-from pydantic import BaseModel, Field, AnyHttpUrl
+from pydantic import BaseModel, Field, HttpUrl
 from datetime import datetime
-
-# TODO: use the HttpUrl in model
 
 
 class VMS(BaseModel):
@@ -32,7 +30,7 @@ class HostConfig(BaseModel):
 
 
 class ManifestRepository(BaseModel):
-    url: AnyHttpUrl
+    url: HttpUrl
 
 
 class ManifestGlonax(BaseModel):

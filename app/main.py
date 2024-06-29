@@ -98,7 +98,7 @@ def get_manifest() -> models.Manifest:
     manifest = models.Manifest(
         version="1.0.0",
         timestamp=datetime.datetime.now(),
-        repository=["https://edge.laixer.equipment"],
+        repository=[models.ManifestRepository(url="https://edge.laixer.equipment")],
         glonax=models.ManifestGlonax(version="3.5.9"),
     )
 
@@ -118,6 +118,7 @@ def get_client(
     return manager.instance_ids
 
 
+# TODO: Not sure if we keep the /app endpoint
 @app.websocket("/app/{instance_id}/ws")
 async def app_connector(
     instance_id: UUID,
