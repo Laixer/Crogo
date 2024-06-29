@@ -1,7 +1,5 @@
-import os
-import time
 import datetime
-from typing import Union
+from typing import Callable
 from uuid import UUID
 from pydantic import BaseModel, ValidationError
 
@@ -9,21 +7,18 @@ from fastapi import (
     FastAPI,
     HTTPException,
     Request,
-    Header,
     Depends,
     Security,
     WebSocket,
     WebSocketDisconnect,
-    WebSocketException,
     status,
 )
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app import repository, models, schemas
+from app import repository, models
 from app.config import SettingsLocal
 from app.database import SessionLocal
-from app.models import Command
 
 app = FastAPI(docs_url=None, redoc_url=None, root_path="/api")
 security = HTTPBearer()
@@ -35,6 +30,43 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+class ChannelMessage(BaseModel):
+    type: str
+    topic: str | None = None
+    data: dict | None = None
+
+
+class Connection:
+    on_signal: list[Callable[[ChannelMessage], None]] = []
+
+    def __init__(self, instance_id: UUID, websocket: WebSocket):
+        self.instance_id = instance_id
+        self.websocket = websocket
+
+
+class ConnectionManager:
+    connections: list[Connection] = {}
+
+    @property
+    def instance_ids(self) -> list[UUID]:
+        return [conn.instance_id for conn in self.connections]
+
+    def register_connection(self, connection: Connection):
+        self.connections.append(connection)
+
+    def unregister_connection(self, connection: Connection):
+        self.connections.remove(connection)
+
+    def broadcast(self, instance_id: UUID, message: str):
+        for connection in self.connections:
+            if connection.instance_id == instance_id:
+                for signal in connection.on_signal:
+                    signal(instance_id, message)
+
+
+manager = ConnectionManager()
 
 
 @app.get("/health")
@@ -60,9 +92,8 @@ def get_manifest() -> models.Manifest:
 
 
 @app.get("/instance")
-def get_client():
-    # TODO Return list of all instances currently connected
-    return {"instances": []}
+def get_client() -> list[UUID]:
+    return manager.instance_ids
 
 
 # TODO: Replace the telemetry model with the PyVMS model
@@ -103,57 +134,49 @@ def post_telemetry(
     repository.create_telemetry(db, instance_id, vms)
 
 
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: list[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-
-    async def send_personal_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
-
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
-
-
-manager = ConnectionManager()
-
-
 @app.websocket("/app/{instance_id}/ws")
 async def app_connector(
     instance_id: UUID,
     websocket: WebSocket,
 ):
-    await manager.connect(websocket)
+    await websocket.accept()
+    # manager.register_subscriber(instance_id, websocket)
+
     try:
         while True:
             data = await websocket.receive_json()
             print(data)
-
-            # await manager.send_personal_message(f"You wrote: {data}", websocket)
-            # await manager.broadcast(f"Instance {instance_id} says: {data}")
 
             # Depending on the message:
             # - Bind the instance connector to the current websocket
             # - Broadcast a message to all instances in a cluster
 
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        # manager.unregister_subscriber(instance_id)
+        pass
 
 
-class ChannelMessage(BaseModel):
-    type: str
-    topic: str | None = None
-    data: dict | None = None
+# vms_last_update = time.time()
 
 
-vms_last_update = time.time()
+# async def on_signal(instance_id: UUID, message: ChannelMessage):
+#     # global vms_last_update
+
+#     await manager.broadcast(instance_id, message.model_dump_json())
+
+# if message.topic == "vms":
+#     vms_last_update_elapsed = time.time() - vms_last_update
+#     print(f"Elapsed: {vms_last_update_elapsed}")
+
+# if vms_last_update_elapsed > 20:
+#     vms = models.VMS(**message.data)
+#     repository.create_telemetry(db, instance_id, vms)
+
+# vms_last_update = time.time()
+# elif message.topic == "status":
+#     print(f"Status: {message.data}")
+# elif message.topic == "engine":
+#     print(f"Engine: {message.data}")
 
 
 @app.websocket("/{instance_id}/ws")
@@ -163,38 +186,30 @@ async def instance_connector(
     db: Session = Depends(get_db),
 ):
     await websocket.accept()
+
+    def on_notify(instance_id: UUID, message: ChannelMessage):
+        if message.topic == "boot":
+            print(f"Notify: instance {instance_id} successfully booted")
+
+    def on_signal(message: ChannelMessage):
+        if message.topic == "vms":
+            vms = models.VMS(**message.data)
+            repository.create_telemetry(db, instance_id, vms)
+
+    conn = Connection(instance_id, websocket)
+    conn.on_signal.append(on_signal)
+
+    manager.register_connection(conn)
+
     try:
         while True:
             data = await websocket.receive_json()
-
-            async def on_signal(instance_id: UUID, message: ChannelMessage):
-                global vms_last_update
-
-                await manager.broadcast(message.model_dump_json())
-
-                if message.topic == "vms":
-                    vms_last_update_elapsed = time.time() - vms_last_update
-                    print(f"Elapsed: {vms_last_update_elapsed}")
-
-                    if vms_last_update_elapsed > 20:
-                        vms = models.VMS(**message.data)
-                        repository.create_telemetry(db, instance_id, vms)
-
-                        vms_last_update = time.time()
-                elif message.topic == "status":
-                    print(f"Status: {message.data}")
-                elif message.topic == "engine":
-                    print(f"Engine: {message.data}")
-
-            def on_notify(instance_id: UUID, message: ChannelMessage):
-                if message.topic == "boot":
-                    print(f"Notify: instance {instance_id} successfully booted")
 
             try:
                 message = ChannelMessage(**data)
 
                 if message.type == "signal":
-                    await on_signal(instance_id, message)
+                    await manager.broadcast(instance_id, message.model_dump_json())
                 elif message.type == "notify":
                     on_notify(instance_id, message)
 
@@ -207,4 +222,4 @@ async def instance_connector(
                 await websocket.send_json(message.model_dump_json())
 
     except WebSocketDisconnect:
-        pass
+        manager.unregister_connection(conn)
