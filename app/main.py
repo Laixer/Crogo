@@ -173,10 +173,6 @@ async def app_connector(
 #     repository.create_telemetry(db, instance_id, vms)
 
 # vms_last_update = time.time()
-# elif message.topic == "status":
-#     print(f"Status: {message.data}")
-# elif message.topic == "engine":
-#     print(f"Engine: {message.data}")
 
 
 @app.websocket("/{instance_id}/ws")
@@ -187,14 +183,18 @@ async def instance_connector(
 ):
     await websocket.accept()
 
-    def on_notify(instance_id: UUID, message: ChannelMessage):
-        if message.topic == "boot":
-            print(f"Notify: instance {instance_id} successfully booted")
-
     def on_signal(message: ChannelMessage):
         if message.topic == "vms":
             vms = models.VMS(**message.data)
             repository.create_telemetry(db, instance_id, vms)
+        elif message.topic == "status":
+            print(f"Status: {message.data}")
+        elif message.topic == "engine":
+            print(f"Engine: {message.data}")
+        elif message.topic == "error":
+            print(f"Error: {message.data}")
+        elif message.topic == "boot":
+            print(f"Instance {instance_id} booted")
 
     conn = Connection(instance_id, websocket)
     conn.on_signal.append(on_signal)
@@ -210,8 +210,6 @@ async def instance_connector(
 
                 if message.type == "signal":
                     await manager.broadcast(instance_id, message.model_dump_json())
-                elif message.type == "notify":
-                    on_notify(instance_id, message)
 
             except ValidationError as e:
                 message = ChannelMessage(
