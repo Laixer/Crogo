@@ -59,6 +59,13 @@ class ConnectionManager:
     def unregister_connection(self, connection: Connection):
         self.connections.remove(connection)
 
+    def register_on_signal(
+        self, instance_id: UUID, on_signal: Callable[[ChannelMessage], None]
+    ):
+        for connection in self.connections:
+            if connection.instance_id == instance_id:
+                connection.on_signal.append(on_signal)
+
     def broadcast(self, instance_id: UUID, message: str):
         for connection in self.connections:
             if connection.instance_id == instance_id:
@@ -91,9 +98,39 @@ def get_manifest() -> models.Manifest:
     return manifest
 
 
-@app.get("/instance")
-def get_client() -> list[UUID]:
+@app.get("/instances/live")
+def get_client(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+) -> list[UUID]:
+    if credentials.credentials != SettingsLocal.security_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
     return manager.instance_ids
+
+
+@app.websocket("/app/{instance_id}/ws")
+async def app_connector(
+    instance_id: UUID,
+    websocket: WebSocket,
+):
+    await websocket.accept()
+    # manager.register_subscriber(instance_id, websocket)
+
+    try:
+        while True:
+            data = await websocket.receive_json()
+            print(data)
+
+            # Depending on the message:
+            # - Bind the instance connector to the current websocket
+            # - Broadcast a message to all instances in a cluster
+
+    except WebSocketDisconnect:
+        # manager.unregister_subscriber(instance_id)
+        pass
 
 
 # TODO: Replace the telemetry model with the PyVMS model
@@ -132,28 +169,6 @@ def post_telemetry(
     # probe.meta.remote_address = request.client.host
     # repository.update_host(db, probe)
     repository.create_telemetry(db, instance_id, vms)
-
-
-@app.websocket("/app/{instance_id}/ws")
-async def app_connector(
-    instance_id: UUID,
-    websocket: WebSocket,
-):
-    await websocket.accept()
-    # manager.register_subscriber(instance_id, websocket)
-
-    try:
-        while True:
-            data = await websocket.receive_json()
-            print(data)
-
-            # Depending on the message:
-            # - Bind the instance connector to the current websocket
-            # - Broadcast a message to all instances in a cluster
-
-    except WebSocketDisconnect:
-        # manager.unregister_subscriber(instance_id)
-        pass
 
 
 # vms_last_update = time.time()
