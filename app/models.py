@@ -4,14 +4,6 @@ from datetime import datetime
 # TODO: use the HttpUrl in model
 
 
-class Metadata(BaseModel):
-    hostname: str
-    kernel: str
-    datetime: datetime
-    # memory_total: int # TODO: Add this field
-    # cpu_count: int # TODO: Add this field
-
-
 class VMS(BaseModel):
     memory_used: int
     memory_total: int  # TODO: Remove this field
@@ -30,9 +22,13 @@ class Instance(BaseModel):
 
 
 class HostConfig(BaseModel):
-    meta: Metadata
-    instance: Instance
-    # host: VMS | None = None
+    hostname: str
+    kernel: str
+    # memory_total: int # TODO: Add this field
+    # cpu_count: int # TODO: Add this field
+    model: str
+    # version: str
+    serial_number: str
 
 
 class Command(BaseModel):

@@ -170,23 +170,21 @@ def put_host(
             detail="Invalid credentials",
         )
 
-    # TODO: Replace the telemetry model with the PyVMS model
-    # repository.update_host(db, probe)
+    repository.update_host(db, instance_id, host)
 
 
 @app.get("/{instance_id}/host")
 def get_host(
     instance_id: UUID,
-    # credentials: HTTPAuthorizationCredentials = Security(security),
+    credentials: HTTPAuthorizationCredentials = Security(security),
     db: Session = Depends(get_db),
 ):
-    # if credentials.credentials != SettingsLocal.security_key:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_401_UNAUTHORIZED,
-    #         detail="Invalid credentials",
-    #     )
+    if credentials.credentials != SettingsLocal.security_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
 
-    # TODO: Replace the telemetry model with the PyVMS model
     return repository.get_host(db, instance_id)
 
 

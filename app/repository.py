@@ -32,14 +32,14 @@ def create_telemetry(db: Session, instance_id: UUID, model: models.VMS):
     db.commit()
 
 
-def update_host(db: Session, model: models.HostConfig):
+def update_host(db: Session, instance_id: UUID, model: models.HostConfig):
     db.merge(
         schemas.Host(
-            instance=model.instance.id,
-            hostname=model.meta.hostname,
-            kernel=model.meta.kernel,
-            model=model.instance.model,
-            serial_number=model.instance.serial_number,
+            instance=instance_id,
+            hostname=model.hostname,
+            kernel=model.kernel,
+            model=model.model,
+            serial_number=model.serial_number,
             version=359,
         )
     )
