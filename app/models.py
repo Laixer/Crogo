@@ -5,13 +5,13 @@ from datetime import datetime
 
 
 class VMS(BaseModel):
-    memory_used: int
+    memory_used: int  # TODO: Should be a percentage
     memory_total: int  # TODO: Remove this field
     swap_used: int  # TODO: Remove this field
     swap_total: int  # TODO: Remove this field
-    cpu_load: list[float]
+    cpu_load: tuple[float, float, float]
     uptime: int
-    timestamp: datetime
+    timestamp: datetime  # TODO: Rename to created_at
 
 
 class Instance(BaseModel):
@@ -29,12 +29,6 @@ class HostConfig(BaseModel):
     model: str
     # version: str
     serial_number: str
-
-
-class Command(BaseModel):
-    priority: int
-    command: str
-    value: str | int | None = None
 
 
 class ManifestRepository(BaseModel):

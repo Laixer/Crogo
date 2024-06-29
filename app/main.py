@@ -178,7 +178,7 @@ def get_host(
     instance_id: UUID,
     credentials: HTTPAuthorizationCredentials = Security(security),
     db: Session = Depends(get_db),
-):
+) -> models.HostConfig:
     if credentials.credentials != SettingsLocal.security_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
