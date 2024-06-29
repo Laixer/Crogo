@@ -3,8 +3,6 @@ from sqlalchemy.orm import Session
 
 from app import schemas, models
 
-# from app.main import Probe, Host
-
 
 def get_host(db: Session, instance_id: UUID) -> models.HostConfig:
     host = db.query(schemas.Host).filter(schemas.Host.instance == instance_id).first()

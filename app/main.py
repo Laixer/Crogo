@@ -205,7 +205,6 @@ def get_telemetry(
     return repository.get_telemetry(db, instance_id, skip, limit)
 
 
-# TODO: Replace the telemetry model with the PyVMS model
 @app.post("/{instance_id}/telemetry", status_code=status.HTTP_201_CREATED)
 def post_telemetry(
     vms: models.VMS,
@@ -222,7 +221,6 @@ def post_telemetry(
 
     # probe.instance.id = instance_id
     # probe.meta.remote_address = request.client.host
-    # repository.update_host(db, probe)
     repository.create_telemetry(db, instance_id, vms)
 
 
@@ -256,6 +254,7 @@ async def instance_connector(
     def on_signal(message: ChannelMessage):
         if message.topic == "vms":
             vms = models.VMS(**message.data)
+            # TODO: Check if we need to store the telemetry
             repository.create_telemetry(db, instance_id, vms)
         elif message.topic == "status":
             print(f"Status: {message.data}")
