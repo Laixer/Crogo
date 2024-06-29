@@ -39,7 +39,6 @@ class ManifestGlonax(BaseModel):
 
 class Manifest(BaseModel):
     version: str = Field(description="Manifest version")
-    timestamp: datetime = Field(description="Timestamp in ISO 8601 format")
     repository: list[ManifestRepository] = Field(description="List of repository URLs")
     glonax: ManifestGlonax | None = Field(
         None, description="Glonax-related information"

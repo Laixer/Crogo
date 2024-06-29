@@ -97,7 +97,6 @@ def get_client(request: Request) -> dict[str, str]:
 def get_manifest() -> models.Manifest:
     manifest = models.Manifest(
         version="1.0.0",
-        timestamp=datetime.datetime.now(),
         repository=[models.ManifestRepository(url="https://edge.laixer.equipment")],
         glonax=models.ManifestGlonax(version="3.5.9"),
     )

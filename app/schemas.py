@@ -3,10 +3,27 @@ import uuid
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import UUID, TIMESTAMP
-from sqlalchemy import Column, Integer, String, Float, DateTime, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Integer,
+    String,
+    Float,
+    UniqueConstraint,
+)
 
 
 Base = declarative_base()
+
+
+class Auth(Base):
+    __tablename__ = "auth"
+
+    token = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    def __repr__(self):
+        return f"<Auth(token='{self.token}', is_active='{self.is_active}')>"
 
 
 class Telemetry(Base):
