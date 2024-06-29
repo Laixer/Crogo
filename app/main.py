@@ -39,6 +39,7 @@ class ChannelMessage(BaseModel):
 
 
 class Connection:
+    is_claimed: bool = False
     on_signal: list[Callable[[ChannelMessage], None]] = []
 
     def __init__(self, instance_id: UUID, websocket: WebSocket):
@@ -65,6 +66,11 @@ class ConnectionManager:
         for connection in self.connections:
             if connection.instance_id == instance_id:
                 connection.on_signal.append(on_signal)
+
+    def is_claimed(self, instance_id: UUID) -> bool:
+        for connection in self.connections:
+            if connection.instance_id == instance_id:
+                return connection.is_claimed
 
     def broadcast(self, instance_id: UUID, message: str):
         for connection in self.connections:
@@ -116,20 +122,37 @@ async def app_connector(
     instance_id: UUID,
     websocket: WebSocket,
 ):
+    instance_claimed = False
+
     await websocket.accept()
-    # manager.register_subscriber(instance_id, websocket)
 
     try:
         while True:
             data = await websocket.receive_json()
-            print(data)
 
-            # Depending on the message:
-            # - Bind the instance connector to the current websocket
-            # - Broadcast a message to all instances in a cluster
+            try:
+                message = ChannelMessage(**data)
+
+                if message.type == "control":
+                    if not manager.is_claimed(instance_id) or instance_claimed:
+                        # TODO: Send single control message to the instance
+                        pass
+
+                elif message.type == "motion":
+                    if not manager.is_claimed(instance_id) or instance_claimed:
+                        # TODO: Claim the instance
+                        pass
+
+            except ValidationError as e:
+                message = ChannelMessage(
+                    type="error",
+                    topic="validation",
+                )
+
+                await websocket.send_json(message.model_dump_json())
 
     except WebSocketDisconnect:
-        # manager.unregister_subscriber(instance_id)
+        # TODO: If we claim the instance, we need to release it
         pass
 
 
