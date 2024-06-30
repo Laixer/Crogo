@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 from datetime import datetime
 
 
@@ -8,7 +8,7 @@ class VMS(BaseModel):
     swap_used: int  # TODO: Remove this field
     swap_total: int  # TODO: Remove this field
     cpu_load: tuple[float, float, float]
-    uptime: int
+    uptime: int = Field(..., description="Uptime in seconds")
     timestamp: datetime  # TODO: Rename to created_at
 
 
@@ -27,6 +27,11 @@ class HostConfig(BaseModel):
     model: str
     # version: str
     serial_number: str
+
+
+class UserLogin(BaseModel):
+    email: EmailStr = Field(...)
+    password: str = Field(...)
 
 
 class ManifestRepository(BaseModel):
