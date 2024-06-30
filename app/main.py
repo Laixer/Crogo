@@ -123,6 +123,7 @@ def get_instances(db: Session = Depends(get_db)):
     return repository.get_hosts(db)
 
 
+# TODO: Add an 'is_live' field to /instances
 # TAG: App
 @app.get("/instances/live", dependencies=[Security(security)])
 def get_instances_live() -> list[UUID]:
@@ -170,6 +171,7 @@ async def app_connector(
         pass
 
 
+# TODO: Replace with a 'POST' method
 # TAG: Machine
 @app.get("/{instance_id}/enroll")
 def get_enroll():
@@ -212,6 +214,7 @@ def get_telemetry(
     return repository.get_telemetry(db, instance_id, skip, limit)
 
 
+# TODO: Maybe removed the 'instance' path
 # TAG: Machine
 @app.post(
     "/{instance_id}/telemetry",
@@ -227,6 +230,7 @@ def post_telemetry(
     # probe.instance.id = instance_id
     # probe.meta.remote_address = request.client.host
     repository.create_telemetry(db, instance_id, vms)
+    # TODO: Update last contact with the instance
 
 
 # vms_last_update = time.time()
@@ -272,7 +276,7 @@ async def instance_connector(
             print(f"Engine: {message.data}")
 
     conn = Connection(instance_id, websocket)
-    conn.on_signal.append(on_signal)
+    # conn.on_signal.append(on_signal)  # TODO: Dont need this no more
 
     manager.register_connection(conn)
 
