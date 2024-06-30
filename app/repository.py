@@ -4,6 +4,20 @@ from sqlalchemy.orm import Session
 from app import schemas, models
 
 
+def get_hosts(db: Session) -> list[models.HostConfig]:
+    hosts = db.query(schemas.Host).all()
+
+    return [
+        models.HostConfig(
+            hostname=host.hostname,
+            kernel=host.kernel,
+            model=host.model,
+            serial_number=host.serial_number,
+        )
+        for host in hosts
+    ]
+
+
 def get_host(db: Session, instance_id: UUID) -> models.HostConfig:
     host = db.query(schemas.Host).filter(schemas.Host.instance == instance_id).first()
 

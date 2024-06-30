@@ -105,8 +105,13 @@ def get_manifest() -> models.Manifest:
     return manifest
 
 
+@app.get("/instances", dependencies=[Security(security)])
+def get_instances(db: Session = Depends(get_db)):
+    return repository.get_hosts(db)
+
+
 @app.get("/instances/live", dependencies=[Security(security)])
-def get_client() -> list[UUID]:
+def get_instances_live() -> list[UUID]:
     return manager.instance_ids
 
 
