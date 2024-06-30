@@ -157,6 +157,12 @@ async def app_connector(
         pass
 
 
+@app.get("/{instance_id}/enroll")
+def get_enroll():
+    # TODO: Add instance to auth (inactive) repository and return the token
+    return {"token": SettingsLocal.security_key}
+
+
 @app.put("/{instance_id}/host", status_code=status.HTTP_201_CREATED)
 def put_host(
     host: models.HostConfig,
@@ -252,7 +258,11 @@ async def instance_connector(
     await websocket.accept()
 
     def on_signal(message: ChannelMessage):
-        if message.topic == "vms":
+        if message.topic == "boot":
+            print(f"Instance {instance_id} booted")
+        elif message.topic == "error":
+            print(f"Error: {message.data}")
+        elif message.topic == "vms":
             vms = models.VMS(**message.data)
             # TODO: Check if we need to store the telemetry
             repository.create_telemetry(db, instance_id, vms)
@@ -260,10 +270,6 @@ async def instance_connector(
             print(f"Status: {message.data}")
         elif message.topic == "engine":
             print(f"Engine: {message.data}")
-        elif message.topic == "error":
-            print(f"Error: {message.data}")
-        elif message.topic == "boot":
-            print(f"Instance {instance_id} booted")
 
     conn = Connection(instance_id, websocket)
     conn.on_signal.append(on_signal)
