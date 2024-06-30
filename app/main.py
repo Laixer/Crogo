@@ -89,11 +89,13 @@ def health() -> dict[str, int]:
     return {"status": 1}
 
 
+# TAG: Machine
 @app.get("/client")
 def get_client(request: Request) -> dict[str, str]:
     return {"address": request.client.host}
 
 
+# TAG: Machine
 @app.get("/manifest")
 def get_manifest() -> models.Manifest:
     manifest = models.Manifest(
@@ -105,16 +107,29 @@ def get_manifest() -> models.Manifest:
     return manifest
 
 
+# TAG: App
+@app.post("/login")
+def post_login(user: models.UserLogin):
+    if user.email == "test@example.com" and user.password == "password":
+        # TODO: Return a JWT token
+        return {"token": SettingsLocal.security_key}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+
+# TAG: App
 @app.get("/instances", dependencies=[Security(security)])
 def get_instances(db: Session = Depends(get_db)):
     return repository.get_hosts(db)
 
 
+# TAG: App
 @app.get("/instances/live", dependencies=[Security(security)])
 def get_instances_live() -> list[UUID]:
     return manager.instance_ids
 
 
+# TAG: App
 # TODO: Not sure if we keep the /app endpoint
 @app.websocket("/app/{instance_id}/ws")
 async def app_connector(
@@ -155,12 +170,14 @@ async def app_connector(
         pass
 
 
+# TAG: Machine
 @app.get("/{instance_id}/enroll")
 def get_enroll():
     # TODO: Add instance to auth (inactive) repository and return the token
     return {"token": SettingsLocal.security_key}
 
 
+# TAG: Machine
 @app.put(
     "/{instance_id}/host",
     status_code=status.HTTP_201_CREATED,
@@ -174,6 +191,7 @@ def put_host(
     repository.update_host(db, instance_id, host)
 
 
+# TAG: App
 @app.get("/{instance_id}/host", dependencies=[Security(security)])
 def get_host(
     instance_id: UUID,
@@ -182,6 +200,7 @@ def get_host(
     return repository.get_host(db, instance_id)
 
 
+# TAG: App
 @app.get("/{instance_id}/telemetry", dependencies=[Security(security)])
 def get_telemetry(
     instance_id: UUID,
@@ -192,6 +211,7 @@ def get_telemetry(
     return repository.get_telemetry(db, instance_id, skip, limit)
 
 
+# TAG: Machine
 @app.post(
     "/{instance_id}/telemetry",
     status_code=status.HTTP_201_CREATED,
@@ -227,6 +247,7 @@ def post_telemetry(
 # vms_last_update = time.time()
 
 
+# TAG: Machine
 @app.websocket("/{instance_id}/ws")
 async def instance_connector(
     instance_id: UUID,
