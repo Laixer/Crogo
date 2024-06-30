@@ -17,12 +17,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app import repository, models
+from app.auth.key import KeyBearer
 from app.config import SettingsLocal
 from app.database import SessionLocal
 
 app = FastAPI(docs_url=None, redoc_url=None, root_path="/api")
 
-security = HTTPBearer()
+security = KeyBearer(SettingsLocal.security_key)
 
 
 def get_db():
@@ -104,16 +105,8 @@ def get_manifest() -> models.Manifest:
     return manifest
 
 
-@app.get("/instances/live")
-def get_client(
-    credentials: HTTPAuthorizationCredentials = Security(security),
-) -> list[UUID]:
-    if credentials.credentials != SettingsLocal.security_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-        )
-
+@app.get("/instances/live", dependencies=[Security(security)])
+def get_client() -> list[UUID]:
     return manager.instance_ids
 
 
@@ -163,68 +156,48 @@ def get_enroll():
     return {"token": SettingsLocal.security_key}
 
 
-@app.put("/{instance_id}/host", status_code=status.HTTP_201_CREATED)
+@app.put(
+    "/{instance_id}/host",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Security(security)],
+)
 def put_host(
     host: models.HostConfig,
     instance_id: UUID,
-    credentials: HTTPAuthorizationCredentials = Security(security),
     db: Session = Depends(get_db),
 ):
-    if credentials.credentials != SettingsLocal.security_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-        )
-
     repository.update_host(db, instance_id, host)
 
 
-@app.get("/{instance_id}/host")
+@app.get("/{instance_id}/host", dependencies=[Security(security)])
 def get_host(
     instance_id: UUID,
-    credentials: HTTPAuthorizationCredentials = Security(security),
     db: Session = Depends(get_db),
 ) -> models.HostConfig:
-    if credentials.credentials != SettingsLocal.security_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-        )
-
     return repository.get_host(db, instance_id)
 
 
-@app.get("/{instance_id}/telemetry")
+@app.get("/{instance_id}/telemetry", dependencies=[Security(security)])
 def get_telemetry(
     instance_id: UUID,
     skip: int = 0,
     limit: int = 5,
-    credentials: HTTPAuthorizationCredentials = Security(security),
     db: Session = Depends(get_db),
 ) -> list[models.VMS]:
-    if credentials.credentials != SettingsLocal.security_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-        )
-
     return repository.get_telemetry(db, instance_id, skip, limit)
 
 
-@app.post("/{instance_id}/telemetry", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/{instance_id}/telemetry",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Security(security)],
+)
 def post_telemetry(
     vms: models.VMS,
     instance_id: UUID,
     request: Request,
-    credentials: HTTPAuthorizationCredentials = Security(security),
     db: Session = Depends(get_db),
 ):
-    if credentials.credentials != SettingsLocal.security_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-        )
-
     # probe.instance.id = instance_id
     # probe.meta.remote_address = request.client.host
     repository.create_telemetry(db, instance_id, vms)
