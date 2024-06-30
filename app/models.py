@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl
 from datetime import datetime
 
 
+# TODO: Rename this class to Telemetry
 class VMS(BaseModel):
     memory_used: int  # TODO: Should be a percentage
     memory_total: int  # TODO: Remove this field
@@ -12,14 +13,9 @@ class VMS(BaseModel):
     timestamp: datetime  # TODO: Rename to created_at
 
 
-class Instance(BaseModel):
-    id: str
-    model: str
-    # version: str
-    serial_number: str
-
-
 class HostConfig(BaseModel):
+    # instance: UUID # TODO: Add this field
+    # name: str # TODO: Add this field
     hostname: str
     kernel: str
     # memory_total: int # TODO: Add this field

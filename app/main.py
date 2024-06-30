@@ -180,7 +180,7 @@ def get_enroll():
 # TAG: Machine
 @app.put(
     "/{instance_id}/host",
-    status_code=status.HTTP_201_CREATED,
+    status_code=201,
     dependencies=[Security(security)],
 )
 def put_host(
@@ -191,6 +191,7 @@ def put_host(
     repository.update_host(db, instance_id, host)
 
 
+# TODO: Maybe removed the 'host' path
 # TAG: App
 @app.get("/{instance_id}/host", dependencies=[Security(security)])
 def get_host(
@@ -214,7 +215,7 @@ def get_telemetry(
 # TAG: Machine
 @app.post(
     "/{instance_id}/telemetry",
-    status_code=status.HTTP_201_CREATED,
+    status_code=201,
     dependencies=[Security(security)],
 )
 def post_telemetry(
@@ -295,3 +296,4 @@ async def instance_connector(
 
     except WebSocketDisconnect:
         manager.unregister_connection(conn)
+        # TODO: log last contact with the instance
