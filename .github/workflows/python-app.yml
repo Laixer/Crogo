@@ -38,5 +38,5 @@ jobs:
       run: |
         pytest
       env:
-        SECRET_KEY: somelargetextstringusedinsignatures
+        SECURITY_KEY: somesecuritykey
         DATABASE_URL: postgresql://localhost/db
