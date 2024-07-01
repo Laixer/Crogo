@@ -15,7 +15,7 @@ class KeyBearer(HTTPBearer):
                 raise HTTPException(
                     status_code=403, detail="Invalid authentication scheme."
                 )
-            if credentials.credentials != self.security_key:
+            if credentials.credentials != self.key:
                 raise HTTPException(
                     status_code=403,
                     detail="Invalid credentials",
