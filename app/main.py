@@ -97,9 +97,9 @@ def health() -> dict[str, int]:
 
 
 # TAG: Machine
-@app.get("/client")
-def get_client(request: Request) -> dict[str, str]:
-    return {"address": request.client.host}
+# @app.get("/client")
+# def get_client(request: Request) -> dict[str, str]:
+#     return {"address": request.client.host}
 
 
 # TAG: Machine
