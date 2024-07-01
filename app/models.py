@@ -2,6 +2,12 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl
 from datetime import datetime
 
 
+class ChannelMessage(BaseModel):
+    type: str
+    topic: str
+    data: dict | None = None
+
+
 class Telemetry(BaseModel):
     memory_used: float
     disk_used: float

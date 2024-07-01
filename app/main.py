@@ -1,7 +1,6 @@
-import datetime
 from typing import Callable
 from uuid import UUID
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from fastapi import (
     FastAPI,
@@ -11,9 +10,7 @@ from fastapi import (
     Security,
     WebSocket,
     WebSocketDisconnect,
-    status,
 )
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app import repository, models
@@ -34,15 +31,9 @@ def get_db():
         db.close()
 
 
-class ChannelMessage(BaseModel):
-    type: str
-    topic: str | None = None
-    data: dict | None = None
-
-
 class Connection:
     is_claimed: bool = False
-    on_signal: list[Callable[[ChannelMessage], None]] = []
+    on_signal: list[Callable[[models.ChannelMessage], None]] = []
 
     def __init__(self, instance_id: UUID, websocket: WebSocket):
         self.instance_id = instance_id
@@ -59,18 +50,24 @@ class ConnectionManager:
     def register_connection(self, connection: Connection):
         self.connections.append(connection)
 
-    def unregister_connection(self, connection: Connection):
+    async def unregister_connection(self, connection: Connection):
+        for signal in connection.on_signal:
+            # TODO: Do not trigger the signal, but a specific function
+            await signal(
+                connection.instance_id,
+                models.ChannelMessage(type="error", topic="disconnect"),
+            )
         self.connections.remove(connection)
 
     def register_on_signal(
-        self, instance_id: UUID, on_signal: Callable[[ChannelMessage], None]
+        self, instance_id: UUID, on_signal: Callable[[models.ChannelMessage], None]
     ):
         for connection in self.connections:
             if connection.instance_id == instance_id:
                 connection.on_signal.append(on_signal)
 
     def unregister_on_signal(
-        self, instance_id: UUID, on_signal: Callable[[ChannelMessage], None]
+        self, instance_id: UUID, on_signal: Callable[[models.ChannelMessage], None]
     ):
         for connection in self.connections:
             if connection.instance_id == instance_id:
@@ -81,7 +78,18 @@ class ConnectionManager:
             if connection.instance_id == instance_id:
                 return connection.is_claimed
 
-    async def broadcast(self, instance_id: UUID, message: ChannelMessage):
+    def claim(self, instance_id: UUID):
+        for connection in self.connections:
+            if connection.instance_id == instance_id:
+                connection.is_claimed = True
+
+    # TODO: Check if claimed
+    async def command(self, instance_id: UUID, message: models.ChannelMessage):
+        for connection in self.connections:
+            if connection.instance_id == instance_id:
+                await connection.websocket.send_json(message.model_dump())
+
+    async def broadcast(self, instance_id: UUID, message: models.ChannelMessage):
         for connection in self.connections:
             if connection.instance_id == instance_id:
                 for signal in connection.on_signal:
@@ -94,12 +102,6 @@ manager = ConnectionManager()
 @app.get("/health")
 def health() -> dict[str, int]:
     return {"status": 1}
-
-
-# TAG: Machine
-# @app.get("/client")
-# def get_client(request: Request) -> dict[str, str]:
-#     return {"address": request.client.host}
 
 
 # TAG: Machine
@@ -148,7 +150,7 @@ async def app_connector(
 
     await websocket.accept()
 
-    async def on_app_signal(instance_id: UUID, message: ChannelMessage):
+    async def on_app_signal(instance_id: UUID, message: models.ChannelMessage):
         if message.topic == "boot":
             print(f"APP: Instance {instance_id} booted")
         elif message.topic == "error":
@@ -163,15 +165,17 @@ async def app_connector(
 
     try:
         while True:
+            # TODO: Handle non json messages
             data = await websocket.receive_json()
 
             try:
-                message = ChannelMessage(**data)
+                message = models.ChannelMessage(**data)
 
                 if message.type == "control":
+                    print(f"APP: Control: {message.data}")
                     if not manager.is_claimed(instance_id) or instance_claimed:
                         # TODO: Send single control message to the instance
-                        pass
+                        await manager.command(instance_id, message)
 
                 elif message.type == "motion":
                     if not manager.is_claimed(instance_id) or instance_claimed:
@@ -179,7 +183,7 @@ async def app_connector(
                         pass
 
             except ValidationError as e:
-                message = ChannelMessage(
+                message = models.ChannelMessage(
                     type="error",
                     topic="validation",
                 )
@@ -187,8 +191,10 @@ async def app_connector(
                 await websocket.send_json(message.model_dump_json())
 
     except WebSocketDisconnect:
-        # TODO: If we claim the instance, we need to release it
         manager.unregister_on_signal(instance_id, on_app_signal)
+    finally:
+        # TODO: If we claim the instance, we need to release it
+        pass
 
 
 # TODO: Replace with a 'POST' method
@@ -261,7 +267,7 @@ async def instance_connector(
 ):
     await websocket.accept()
 
-    async def on_signal(instance_id: UUID, message: ChannelMessage):
+    async def on_signal(instance_id: UUID, message: models.ChannelMessage):
         if message.topic == "boot":
             print(f"MACHINE: Instance {instance_id} booted")
         elif message.topic == "error":
@@ -281,19 +287,19 @@ async def instance_connector(
             data = await websocket.receive_json()
 
             try:
-                message = ChannelMessage(**data)
+                message = models.ChannelMessage(**data)
 
                 if message.type == "signal":
                     await manager.broadcast(instance_id, message)
 
             except ValidationError as e:
-                message = ChannelMessage(
+                message = models.ChannelMessage(
                     type="error",
                     topic="validation",
                 )
 
-                await websocket.send_json(message.model_dump_json())
+                await websocket.send_json(message.model_dump())
 
     except WebSocketDisconnect:
-        manager.unregister_connection(conn)
+        await manager.unregister_connection(conn)
         # TODO: log last contact with the instance
