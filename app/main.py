@@ -69,16 +69,23 @@ class ConnectionManager:
             if connection.instance_id == instance_id:
                 connection.on_signal.append(on_signal)
 
+    def unregister_on_signal(
+        self, instance_id: UUID, on_signal: Callable[[ChannelMessage], None]
+    ):
+        for connection in self.connections:
+            if connection.instance_id == instance_id:
+                connection.on_signal.remove(on_signal)
+
     def is_claimed(self, instance_id: UUID) -> bool:
         for connection in self.connections:
             if connection.instance_id == instance_id:
                 return connection.is_claimed
 
-    def broadcast(self, instance_id: UUID, message: ChannelMessage):
+    async def broadcast(self, instance_id: UUID, message: ChannelMessage):
         for connection in self.connections:
             if connection.instance_id == instance_id:
                 for signal in connection.on_signal:
-                    signal(instance_id, message)
+                    await signal(instance_id, message)
 
 
 manager = ConnectionManager()
@@ -141,6 +148,19 @@ async def app_connector(
 
     await websocket.accept()
 
+    async def on_app_signal(instance_id: UUID, message: ChannelMessage):
+        if message.topic == "boot":
+            print(f"APP: Instance {instance_id} booted")
+        elif message.topic == "error":
+            print(f"APP: Error: {message.data}")
+        elif message.topic == "status":
+            print(f"APP: Status: {message.data}")
+            await websocket.send_json(message.model_dump())
+        elif message.topic == "engine":
+            print(f"APP: Engine: {message.data}")
+
+    manager.register_on_signal(instance_id, on_app_signal)
+
     try:
         while True:
             data = await websocket.receive_json()
@@ -168,7 +188,7 @@ async def app_connector(
 
     except WebSocketDisconnect:
         # TODO: If we claim the instance, we need to release it
-        pass
+        manager.unregister_on_signal(instance_id, on_app_signal)
 
 
 # TODO: Replace with a 'POST' method
@@ -241,15 +261,15 @@ async def instance_connector(
 ):
     await websocket.accept()
 
-    def on_signal(instance_id: UUID, message: ChannelMessage):
+    async def on_signal(instance_id: UUID, message: ChannelMessage):
         if message.topic == "boot":
-            print(f"Instance {instance_id} booted")
+            print(f"MACHINE: Instance {instance_id} booted")
         elif message.topic == "error":
-            print(f"Error: {message.data}")
+            print(f"MACHINE: Error: {message.data}")
         elif message.topic == "status":
-            print(f"Status: {message.data}")
+            print(f"MACHINE: Status: {message.data}")
         elif message.topic == "engine":
-            print(f"Engine: {message.data}")
+            print(f"MACHINE: Engine: {message.data}")
 
     conn = Connection(instance_id, websocket)
     conn.on_signal.append(on_signal)  # TODO: Dont need this no more
@@ -264,7 +284,7 @@ async def instance_connector(
                 message = ChannelMessage(**data)
 
                 if message.type == "signal":
-                    manager.broadcast(instance_id, message)
+                    await manager.broadcast(instance_id, message)
 
             except ValidationError as e:
                 message = ChannelMessage(
