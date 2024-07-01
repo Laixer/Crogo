@@ -232,25 +232,6 @@ def post_telemetry(
     # TODO: Update last contact with the instance
 
 
-# vms_last_update = time.time()
-
-
-# async def on_signal(instance_id: UUID, message: ChannelMessage):
-#     # global vms_last_update
-
-#     await manager.broadcast(instance_id, message.model_dump_json())
-
-# if message.topic == "vms":
-#     vms_last_update_elapsed = time.time() - vms_last_update
-#     print(f"Elapsed: {vms_last_update_elapsed}")
-
-# if vms_last_update_elapsed > 20:
-#     vms = models.VMS(**message.data)
-#     repository.create_telemetry(db, instance_id, vms)
-
-# vms_last_update = time.time()
-
-
 # TAG: Machine
 @app.websocket("/{instance_id}/ws")
 async def instance_connector(
@@ -265,11 +246,6 @@ async def instance_connector(
             print(f"Instance {instance_id} booted")
         elif message.topic == "error":
             print(f"Error: {message.data}")
-        elif message.topic == "vms":
-            # vms = models.VMS (**message.data)
-            pass
-            # TODO: Check if we need to store the telemetry
-            # repository.create_telemetry(db, instance_id, vms)
         elif message.topic == "status":
             print(f"Status: {message.data}")
         elif message.topic == "engine":
