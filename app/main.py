@@ -4,7 +4,6 @@ from pydantic import ValidationError
 
 from fastapi import (
     FastAPI,
-    HTTPException,
     Request,
     Depends,
     Security,
@@ -14,21 +13,16 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app import repository, models
-from app.auth.key import KeyBearer
+from app.routers import user
+from app.auth.key import StaticKeyHTTPBearer
 from app.config import SettingsLocal
-from app.database import SessionLocal
+from app.dependencies import get_db
 
 app = FastAPI(docs_url=None, redoc_url=None, root_path="/api")
 
-security = KeyBearer(SettingsLocal.security_key)
+app.include_router(user.router)
 
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+security = StaticKeyHTTPBearer(SettingsLocal.security_key)
 
 
 class Connection:
@@ -117,19 +111,19 @@ def get_manifest() -> models.Manifest:
 
 
 # TAG: App
-@app.post("/login")
-def post_login(user: models.UserLogin):
-    if user.email == "test@example.com" and user.password == "password":
-        # TODO: Return a JWT token
-        return {"token": SettingsLocal.security_key}
-    else:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+# @app.post("/login")
+# def post_login(user: models.UserLogin):
+#     if user.email == "test@example.com" and user.password == "password":
+#         # TODO: Return a JWT token
+#         return {"token": SettingsLocal.security_key}
+#     else:
+#         raise HTTPException(status_code=401, detail="Invalid credentials")
 
 
 # TAG: App
-@app.get("/instances", dependencies=[Security(security)])
-def get_instances(db: Session = Depends(get_db)):
-    return repository.get_hosts(db)
+# @app.get("/instances", dependencies=[Security(security)])
+# def get_instances(db: Session = Depends(get_db)):
+#     return repository.get_hosts(db)
 
 
 # TODO: Add an 'is_live' field to /instances
@@ -219,25 +213,25 @@ def put_host(
     repository.update_host(db, instance_id, host)
 
 
-# TODO: Maybe removed the 'host' path
-# TAG: App
-@app.get("/{instance_id}/host", dependencies=[Security(security)])
-def get_host(
-    instance_id: UUID,
-    db: Session = Depends(get_db),
-) -> models.HostConfig:
-    return repository.get_host(db, instance_id)
+# # TODO: Maybe removed the 'host' path
+# # TAG: App
+# @app.get("/{instance_id}/host", dependencies=[Security(security)])
+# def get_host(
+#     instance_id: UUID,
+#     db: Session = Depends(get_db),
+# ) -> models.HostConfig:
+#     return repository.get_host(db, instance_id)
 
 
-# TAG: App
-@app.get("/{instance_id}/telemetry", dependencies=[Security(security)])
-def get_telemetry(
-    instance_id: UUID,
-    skip: int = 0,
-    limit: int = 5,
-    db: Session = Depends(get_db),
-) -> list[models.Telemetry]:
-    return repository.get_telemetry(db, instance_id, skip, limit)
+# # TAG: App
+# @app.get("/{instance_id}/telemetry", dependencies=[Security(security)])
+# def get_telemetry(
+#     instance_id: UUID,
+#     skip: int = 0,
+#     limit: int = 5,
+#     db: Session = Depends(get_db),
+# ) -> list[models.Telemetry]:
+#     return repository.get_telemetry(db, instance_id, skip, limit)
 
 
 # TODO: Maybe removed the 'instance' path

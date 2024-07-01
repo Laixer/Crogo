@@ -2,7 +2,7 @@ from fastapi import HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 
-class KeyBearer(HTTPBearer):
+class StaticKeyHTTPBearer(HTTPBearer):
     def __init__(self, key: str):
         super().__init__()
         self.key = key
