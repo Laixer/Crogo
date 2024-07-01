@@ -46,7 +46,7 @@ def update_host(db: Session, instance_id: UUID, model: models.HostConfig):
 
 def get_telemetry(
     db: Session, instance_id: UUID, offset: int = 0, limit: int = 5
-) -> list[models.VMS]:
+) -> list[models.Telemetry]:
     telemetry = (
         db.query(schemas.Telemetry)
         .filter(schemas.Telemetry.instance == instance_id)
@@ -57,26 +57,25 @@ def get_telemetry(
     )
 
     return [
-        models.VMS(
-            memory_used=telemetry.memory * 1_024 * 1_024,
-            memory_total=0,
-            swap_used=telemetry.swap * 1_024 * 1_024,
-            swap_total=0,
+        models.Telemetry(
+            memory_used=telemetry.memory_used,
+            disk_used=telemetry.disk_used,
+            cpu_freq=telemetry.cpu_freq,
             cpu_load=[telemetry.cpu_1, telemetry.cpu_5, telemetry.cpu_15],
             uptime=telemetry.uptime,
-            timestamp=telemetry.created_at,
+            created_at=telemetry.created_at,
         )
         for telemetry in telemetry
     ]
 
 
-def create_telemetry(db: Session, instance_id: UUID, model: models.VMS):
+def create_telemetry(db: Session, instance_id: UUID, model: models.Telemetry):
     db.add(
         schemas.Telemetry(
             instance=instance_id,
-            status="HEALTHY",
-            memory=model.memory_used / 1_024 / 1_024,
-            swap=model.swap_used / 1_024 / 1_024,
+            memory_used=model.memory_used,
+            disk_used=model.disk_used,
+            cpu_freq=model.cpu_freq,
             cpu_1=model.cpu_load[0],
             cpu_5=model.cpu_load[1],
             cpu_15=model.cpu_load[2],

@@ -2,15 +2,13 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl
 from datetime import datetime
 
 
-# TODO: Rename this class to Telemetry
-class VMS(BaseModel):
-    memory_used: int  # TODO: Should be a percentage
-    memory_total: int  # TODO: Remove this field
-    swap_used: int  # TODO: Remove this field
-    swap_total: int  # TODO: Remove this field
+class Telemetry(BaseModel):
+    memory_used: float
+    disk_used: float
+    cpu_freq: float
     cpu_load: tuple[float, float, float]
     uptime: int = Field(..., description="Uptime in seconds")
-    timestamp: datetime  # TODO: Rename to created_at
+    created_at: datetime | None = None
 
 
 class HostConfig(BaseModel):

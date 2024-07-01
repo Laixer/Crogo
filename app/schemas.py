@@ -9,6 +9,7 @@ from sqlalchemy import (
     Integer,
     String,
     Float,
+    Numeric,
     UniqueConstraint,
 )
 
@@ -33,14 +34,14 @@ class Telemetry(Base):
     id = Column(Integer, primary_key=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
     instance = Column(UUID(as_uuid=True), default=uuid.uuid4, nullable=False)
-    status = Column(String, nullable=False)
     remote_address = Column(String)
     # location = Column(POINT)
     altitude = Column(Float)
     speed = Column(Float)
     satellites = Column(Integer)
-    memory = Column(Integer)
-    swap = Column(Integer)
+    memory_used = Column(Numeric)
+    disk_used = Column(Numeric)
+    cpu_freq = Column(Float)
     cpu_1 = Column(Float)
     cpu_5 = Column(Float)
     cpu_15 = Column(Float)
@@ -48,7 +49,7 @@ class Telemetry(Base):
     rpm = Column(Integer)
 
     def __repr__(self):
-        return f"<Probe(instance='{self.instance}', created_at='{self.created_at}', status='{self.status}')>"
+        return f"<Telemetry(instance='{self.instance}', created_at='{self.created_at}')>"
 
 
 class Host(Base):

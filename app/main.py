@@ -210,7 +210,7 @@ def get_telemetry(
     skip: int = 0,
     limit: int = 5,
     db: Session = Depends(get_db),
-) -> list[models.VMS]:
+) -> list[models.Telemetry]:
     return repository.get_telemetry(db, instance_id, skip, limit)
 
 
@@ -222,14 +222,14 @@ def get_telemetry(
     dependencies=[Security(security)],
 )
 def post_telemetry(
-    vms: models.VMS,
+    telemetry: models.Telemetry,
     instance_id: UUID,
     request: Request,
     db: Session = Depends(get_db),
 ):
     # probe.instance.id = instance_id
     # probe.meta.remote_address = request.client.host
-    repository.create_telemetry(db, instance_id, vms)
+    repository.create_telemetry(db, instance_id, telemetry)
     # TODO: Update last contact with the instance
 
 
@@ -267,9 +267,10 @@ async def instance_connector(
         elif message.topic == "error":
             print(f"Error: {message.data}")
         elif message.topic == "vms":
-            vms = models.VMS(**message.data)
+            # vms = models.VMS (**message.data)
+            pass
             # TODO: Check if we need to store the telemetry
-            repository.create_telemetry(db, instance_id, vms)
+            # repository.create_telemetry(db, instance_id, vms)
         elif message.topic == "status":
             print(f"Status: {message.data}")
         elif message.topic == "engine":
