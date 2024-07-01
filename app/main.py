@@ -27,6 +27,7 @@ security = StaticKeyHTTPBearer(SettingsLocal.security_key)
 
 class Connection:
     is_claimed: bool = False
+    on_disconnect: list[Callable[[UUID], None]] = []
     on_signal: list[Callable[[models.ChannelMessage], None]] = []
 
     def __init__(self, instance_id: UUID, websocket: WebSocket):
@@ -34,7 +35,7 @@ class Connection:
         self.websocket = websocket
 
 
-class ConnectionManager:
+class MessageRouter:
     connections: list[Connection] = []
 
     @property
@@ -45,12 +46,8 @@ class ConnectionManager:
         self.connections.append(connection)
 
     async def unregister_connection(self, connection: Connection):
-        for signal in connection.on_signal:
-            # TODO: Do not trigger the signal, but a specific function
-            await signal(
-                connection.instance_id,
-                models.ChannelMessage(type="error", topic="disconnect"),
-            )
+        for callable in connection.on_disconnect:
+            await callable(connection.instance_id)
         self.connections.remove(connection)
 
     def register_on_signal(
@@ -82,10 +79,11 @@ class ConnectionManager:
             if connection.instance_id == instance_id:
                 connection.is_claimed = False
 
-    # TODO: Check if claimed
     async def command(self, instance_id: UUID, message: models.ChannelMessage):
         for connection in self.connections:
             if connection.instance_id == instance_id:
+                if connection.is_claimed:
+                    raise Exception("Instance is claimed")
                 await connection.websocket.send_json(message.model_dump())
 
     async def broadcast(self, instance_id: UUID, message: models.ChannelMessage):
@@ -95,7 +93,7 @@ class ConnectionManager:
                     await signal(instance_id, message)
 
 
-manager = ConnectionManager()
+manager = MessageRouter()
 
 
 @app.get("/health")
@@ -103,6 +101,7 @@ def health() -> dict[str, int]:
     return {"status": 1}
 
 
+# TODO: Get from database
 @app.get("/manifest")
 def get_manifest() -> models.Manifest:
     manifest = models.Manifest(
@@ -179,10 +178,9 @@ async def app_connector(
             manager.release(instance_id)
 
 
-# TODO: Replace with a 'POST' method
 # TAG: Machine
-@app.get("/{instance_id}/enroll")
-def get_enroll():
+@app.post("/{instance_id}/enroll")
+def post_enroll():
     # TODO: Add instance to auth (inactive) repository and return the token
     return {"token": SettingsLocal.security_key}
 
@@ -224,7 +222,6 @@ def post_telemetry(
 async def instance_connector(
     instance_id: UUID,
     websocket: WebSocket,
-    db: Session = Depends(get_db),
 ):
     await websocket.accept()
 
