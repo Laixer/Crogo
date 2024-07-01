@@ -37,3 +37,6 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+      env:
+        SECRET_KEY: somelargetextstringusedinsignatures
+        DATABASE_URL: postgresql://localhost/db
