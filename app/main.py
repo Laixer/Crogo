@@ -50,7 +50,7 @@ class Connection:
 
 
 class ConnectionManager:
-    connections: list[Connection] = {}
+    connections: list[Connection] = []
 
     @property
     def instance_ids(self) -> list[UUID]:
@@ -74,7 +74,7 @@ class ConnectionManager:
             if connection.instance_id == instance_id:
                 return connection.is_claimed
 
-    def broadcast(self, instance_id: UUID, message: str):
+    def broadcast(self, instance_id: UUID, message: ChannelMessage):
         for connection in self.connections:
             if connection.instance_id == instance_id:
                 for signal in connection.on_signal:
@@ -260,7 +260,7 @@ async def instance_connector(
 ):
     await websocket.accept()
 
-    def on_signal(message: ChannelMessage):
+    def on_signal(instance_id: UUID, message: ChannelMessage):
         if message.topic == "boot":
             print(f"Instance {instance_id} booted")
         elif message.topic == "error":
@@ -276,7 +276,7 @@ async def instance_connector(
             print(f"Engine: {message.data}")
 
     conn = Connection(instance_id, websocket)
-    # conn.on_signal.append(on_signal)  # TODO: Dont need this no more
+    conn.on_signal.append(on_signal)  # TODO: Dont need this no more
 
     manager.register_connection(conn)
 
@@ -288,7 +288,7 @@ async def instance_connector(
                 message = ChannelMessage(**data)
 
                 if message.type == "signal":
-                    await manager.broadcast(instance_id, message.model_dump_json())
+                    manager.broadcast(instance_id, message)
 
             except ValidationError as e:
                 message = ChannelMessage(
