@@ -227,8 +227,7 @@ def post_telemetry(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    # probe.instance.id = instance_id
-    # probe.meta.remote_address = request.client.host
+    telemetry.remote_address = request.client.host
     repository.create_telemetry(db, instance_id, telemetry)
     # TODO: Update last contact with the instance
 

@@ -85,7 +85,7 @@ def create_telemetry(db: Session, instance_id: UUID, model: models.Telemetry):
             cpu_5=model.cpu_load[1],
             cpu_15=model.cpu_load[2],
             uptime=model.uptime,
-            remote_address="127.0.0.2",
+            remote_address=model.remote_address,
         )
     )
 

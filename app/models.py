@@ -9,6 +9,7 @@ class Telemetry(BaseModel):
     cpu_load: tuple[float, float, float]
     uptime: int = Field(..., description="Uptime in seconds")
     created_at: datetime | None = None
+    remote_address: str | None = None
 
 
 class HostConfig(BaseModel):
