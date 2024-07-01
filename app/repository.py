@@ -9,10 +9,12 @@ def get_hosts(db: Session) -> list[models.HostConfig]:
 
     return [
         models.HostConfig(
+            name=host.name,
             hostname=host.hostname,
             kernel=host.kernel,
             model=host.model,
             serial_number=host.serial_number,
+            version=host.version,
         )
         for host in hosts
     ]
@@ -22,10 +24,12 @@ def get_host(db: Session, instance_id: UUID) -> models.HostConfig:
     host = db.query(schemas.Host).filter(schemas.Host.instance == instance_id).first()
 
     return models.HostConfig(
+        name=host.name,
         hostname=host.hostname,
         kernel=host.kernel,
         model=host.model,
         serial_number=host.serial_number,
+        version=host.version,
     )
 
 
@@ -33,11 +37,12 @@ def update_host(db: Session, instance_id: UUID, model: models.HostConfig):
     db.merge(
         schemas.Host(
             instance=instance_id,
+            name=model.name,
             hostname=model.hostname,
             kernel=model.kernel,
             model=model.model,
             serial_number=model.serial_number,
-            version=359,
+            version=model.version,
         )
     )
 

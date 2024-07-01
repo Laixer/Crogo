@@ -13,13 +13,13 @@ class Telemetry(BaseModel):
 
 class HostConfig(BaseModel):
     # instance: UUID # TODO: Add this field
-    # name: str # TODO: Add this field
+    name: str | None = None
     hostname: str
     kernel: str
     # memory_total: int # TODO: Add this field
     # cpu_count: int # TODO: Add this field
     model: str
-    # version: str
+    version: int
     serial_number: str
 
 

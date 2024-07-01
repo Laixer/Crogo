@@ -49,17 +49,20 @@ class Telemetry(Base):
     rpm = Column(Integer)
 
     def __repr__(self):
-        return f"<Telemetry(instance='{self.instance}', created_at='{self.created_at}')>"
+        return (
+            f"<Telemetry(instance='{self.instance}', created_at='{self.created_at}')>"
+        )
 
 
 class Host(Base):
     __tablename__ = "host"
 
     instance = Column(UUID(as_uuid=True), primary_key=True)
-    hostname = Column(String)  # TODO: should be not null
-    kernel = Column(String)  # TODO: should be not null
-    model = Column(String)  # TODO: should be not null
-    serial_number = Column(String)  # TODO: should be unique, not null
+    name = Column(String)
+    hostname = Column(String, nullable=False)
+    kernel = Column(String, nullable=False)
+    model = Column(String, nullable=False)
+    serial_number = Column(String, nullable=False)  # TODO: should be unique
     version = Column(Integer, nullable=False)
 
     def __repr__(self):
