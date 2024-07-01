@@ -120,6 +120,29 @@ def get_instances_live() -> list[UUID]:
     return manager.instance_ids
 
 
+# TODO: Add Control message
+# @app.post("/{instance_id}/control", dependencies=[Security(security)])
+# def post_command(instance_id: UUID, command: models.Command):
+#     message = models.ChannelMessage(
+#         type="control",
+#         topic="command",
+#         data=command.dict(),
+#     )
+#
+#     manager.command(instance_id, message)
+
+# TODO: Add Engine message
+# @app.post("/{instance_id}/engine", dependencies=[Security(security)])
+# def post_engine(instance_id: UUID, engine: models.Engine):
+#     message = models.ChannelMessage(
+#         type="control",
+#         topic="engine",
+#         data=engine.dict(),
+#     )
+
+#     manager.command(instance_id, message)
+
+
 # TAG: App
 # TODO: Not sure if we keep the /app endpoint
 @app.websocket("/app/{instance_id}/ws")
@@ -131,19 +154,21 @@ async def app_connector(
 
     await websocket.accept()
 
-    async def on_app_signal(instance_id: UUID, message: models.ChannelMessage):
+    async def on_machine_signal(instance_id: UUID, message: models.ChannelMessage):
         if message.topic == "boot":
             print(f"APP: Instance {instance_id} booted")
         elif message.topic == "error":
             print(f"APP: Error: {message.data}")
         elif message.topic == "status":
             print(f"APP: Status: {message.data}")
-            await websocket.send_json(message.model_dump())
         elif message.topic == "engine":
             print(f"APP: Engine: {message.data}")
 
-    manager.register_on_signal(instance_id, on_app_signal)
+        await websocket.send_json(message.model_dump())
 
+    manager.register_on_signal(instance_id, on_machine_signal)
+
+    # FUTURE: Use context manager for claim/release
     try:
         while True:
             # TODO: Handle non json messages
@@ -172,7 +197,7 @@ async def app_connector(
                 await websocket.send_json(message.model_dump_json())
 
     except WebSocketDisconnect:
-        manager.unregister_on_signal(instance_id, on_app_signal)
+        manager.unregister_on_signal(instance_id, on_machine_signal)
     finally:
         if instance_claimed:
             manager.release(instance_id)
@@ -199,7 +224,7 @@ def put_host(
     repository.update_host(db, instance_id, host)
 
 
-# TODO: Maybe removed the 'instance' path
+# FUTURE: Maybe removed the 'instance' path
 # TAG: Machine
 @app.post(
     "/{instance_id}/telemetry",
@@ -242,6 +267,7 @@ async def instance_connector(
 
     try:
         while True:
+            # TODO: Handle non json messages
             data = await websocket.receive_json()
 
             try:
@@ -260,4 +286,3 @@ async def instance_connector(
 
     except WebSocketDisconnect:
         await manager.unregister_connection(conn)
-        # TODO: log last contact with the instance
