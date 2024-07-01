@@ -77,6 +77,11 @@ class ConnectionManager:
             if connection.instance_id == instance_id:
                 connection.is_claimed = True
 
+    def release(self, instance_id: UUID):
+        for connection in self.connections:
+            if connection.instance_id == instance_id:
+                connection.is_claimed = False
+
     # TODO: Check if claimed
     async def command(self, instance_id: UUID, message: models.ChannelMessage):
         for connection in self.connections:
@@ -98,7 +103,6 @@ def health() -> dict[str, int]:
     return {"status": 1}
 
 
-# TAG: Machine
 @app.get("/manifest")
 def get_manifest() -> models.Manifest:
     manifest = models.Manifest(
@@ -108,22 +112,6 @@ def get_manifest() -> models.Manifest:
     )
 
     return manifest
-
-
-# TAG: App
-# @app.post("/login")
-# def post_login(user: models.UserLogin):
-#     if user.email == "test@example.com" and user.password == "password":
-#         # TODO: Return a JWT token
-#         return {"token": SettingsLocal.security_key}
-#     else:
-#         raise HTTPException(status_code=401, detail="Invalid credentials")
-
-
-# TAG: App
-# @app.get("/instances", dependencies=[Security(security)])
-# def get_instances(db: Session = Depends(get_db)):
-#     return repository.get_hosts(db)
 
 
 # TODO: Add an 'is_live' field to /instances
@@ -173,8 +161,8 @@ async def app_connector(
 
                 elif message.type == "motion":
                     if not manager.is_claimed(instance_id) or instance_claimed:
-                        # TODO: Claim the instance
-                        pass
+                        manager.claim(instance_id)
+                        instance_claimed = True
 
             except ValidationError as e:
                 message = models.ChannelMessage(
@@ -187,8 +175,8 @@ async def app_connector(
     except WebSocketDisconnect:
         manager.unregister_on_signal(instance_id, on_app_signal)
     finally:
-        # TODO: If we claim the instance, we need to release it
-        pass
+        if instance_claimed:
+            manager.release(instance_id)
 
 
 # TODO: Replace with a 'POST' method
@@ -211,27 +199,6 @@ def put_host(
     db: Session = Depends(get_db),
 ):
     repository.update_host(db, instance_id, host)
-
-
-# # TODO: Maybe removed the 'host' path
-# # TAG: App
-# @app.get("/{instance_id}/host", dependencies=[Security(security)])
-# def get_host(
-#     instance_id: UUID,
-#     db: Session = Depends(get_db),
-# ) -> models.HostConfig:
-#     return repository.get_host(db, instance_id)
-
-
-# # TAG: App
-# @app.get("/{instance_id}/telemetry", dependencies=[Security(security)])
-# def get_telemetry(
-#     instance_id: UUID,
-#     skip: int = 0,
-#     limit: int = 5,
-#     db: Session = Depends(get_db),
-# ) -> list[models.Telemetry]:
-#     return repository.get_telemetry(db, instance_id, skip, limit)
 
 
 # TODO: Maybe removed the 'instance' path

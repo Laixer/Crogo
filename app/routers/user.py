@@ -7,12 +7,17 @@ from app import models, repository
 from app.auth.key import StaticKeyHTTPBearer
 from app.dependencies import get_db
 
-router = APIRouter()
-
 test_key = "ABC@123"
 security = StaticKeyHTTPBearer(test_key)
 
+router = APIRouter(
+    prefix="/app",
+    tags=["app"],
+    dependencies=[Security(security)],
+)
 
+
+# TODO; Maybe move
 @router.post("/login", tags=["app"])
 def post_login(user: models.UserLogin):
     if user.email == "test@example.com" and user.password == "password":
@@ -22,14 +27,13 @@ def post_login(user: models.UserLogin):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
 
-@router.get("/instances", dependencies=[Security(security)], tags=["app"])
+@router.get("/instances")
 def get_instances(db: Session = Depends(get_db)):
     return repository.get_hosts(db)
 
 
 # TODO: Maybe removed the 'host' path
-# TAG: App
-@router.get("/{instance_id}/host", dependencies=[Security(security)])
+@router.get("/{instance_id}/host")
 def get_host(
     instance_id: UUID,
     db: Session = Depends(get_db),
@@ -37,8 +41,7 @@ def get_host(
     return repository.get_host(db, instance_id)
 
 
-# TAG: App
-@router.get("/{instance_id}/telemetry", dependencies=[Security(security)])
+@router.get("/{instance_id}/telemetry")
 def get_telemetry(
     instance_id: UUID,
     skip: int = 0,
