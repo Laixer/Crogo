@@ -28,11 +28,20 @@ security = StaticKeyHTTPBearer(SettingsLocal.security_key)
 class Connection:
     is_claimed: bool = False
     on_disconnect: list[Callable[[UUID], None]] = []
-    on_signal: list[Callable[[models.ChannelMessage], None]] = []
+    on_message: list[Callable[[models.ChannelMessage], None]] = []
 
     def __init__(self, instance_id: UUID, websocket: WebSocket):
         self.instance_id = instance_id
         self.websocket = websocket
+
+    async def receive(self) -> models.ChannelMessage:
+        try:
+            # TODO: Handle json parsing error
+            data = await self.websocket.receive_json()
+            return models.ChannelMessage(**data)
+        except ValidationError as e:
+            # TODO: Maybe send back websocket error
+            print(e)
 
 
 class MessageRouter:
@@ -50,19 +59,19 @@ class MessageRouter:
             await callable(connection.instance_id)
         self.connections.remove(connection)
 
-    def register_on_signal(
-        self, instance_id: UUID, on_signal: Callable[[models.ChannelMessage], None]
+    def register_on_message(
+        self, instance_id: UUID, on_message: Callable[[models.ChannelMessage], None]
     ):
         for connection in self.connections:
             if connection.instance_id == instance_id:
-                connection.on_signal.append(on_signal)
+                connection.on_message.append(on_message)
 
-    def unregister_on_signal(
-        self, instance_id: UUID, on_signal: Callable[[models.ChannelMessage], None]
+    def unregister_on_message(
+        self, instance_id: UUID, on_message: Callable[[models.ChannelMessage], None]
     ):
         for connection in self.connections:
             if connection.instance_id == instance_id:
-                connection.on_signal.remove(on_signal)
+                connection.on_message.remove(on_message)
 
     def is_claimed(self, instance_id: UUID) -> bool:
         for connection in self.connections:
@@ -89,7 +98,7 @@ class MessageRouter:
     async def broadcast(self, instance_id: UUID, message: models.ChannelMessage):
         for connection in self.connections:
             if connection.instance_id == instance_id:
-                for signal in connection.on_signal:
+                for signal in connection.on_message:
                     await signal(instance_id, message)
 
 
@@ -167,7 +176,7 @@ async def app_connector(
 
         await websocket.send_json(message.model_dump())
 
-    manager.register_on_signal(instance_id, on_machine_signal)
+    manager.register_on_message(instance_id, on_machine_signal)
 
     # FUTURE: Use context manager for claim/release
     try:
@@ -208,7 +217,7 @@ async def app_connector(
                 await websocket.send_json(message.model_dump_json())
 
     except WebSocketDisconnect:
-        manager.unregister_on_signal(instance_id, on_machine_signal)
+        manager.unregister_on_message(instance_id, on_machine_signal)
     finally:
         if instance_claimed:
             manager.release(instance_id)
@@ -253,6 +262,16 @@ def post_telemetry(
     # TODO: Update last contact with the instance
 
 
+async def on_input_message(instance_id: UUID, message: models.ChannelMessage):
+    if message.type == models.ChannelMessageType.SIGNAL:
+        if message.topic == "boot":
+            print(f"MACHINE: Instance {instance_id} booted")
+        elif message.topic == "status":
+            print(f"MACHINE: Status: {message.data}")
+        elif message.topic == "engine":
+            print(f"MACHINE: Engine: {message.data}")
+
+
 # TAG: Machine
 @app.websocket("/{instance_id}/ws")
 async def instance_connector(
@@ -261,39 +280,17 @@ async def instance_connector(
 ):
     await websocket.accept()
 
-    async def on_signal(instance_id: UUID, message: models.ChannelMessage):
-        if message.topic == "boot":
-            print(f"MACHINE: Instance {instance_id} booted")
-        elif message.topic == "error":
-            print(f"MACHINE: Error: {message.data}")
-        elif message.topic == "status":
-            print(f"MACHINE: Status: {message.data}")
-        elif message.topic == "engine":
-            print(f"MACHINE: Engine: {message.data}")
-
     conn = Connection(instance_id, websocket)
-    conn.on_signal.append(on_signal)  # TODO: Dont need this no more
 
     manager.register_connection(conn)
+    manager.register_on_message(instance_id, on_input_message)
 
     try:
         while True:
-            # TODO: Handle non json messages
-            data = await websocket.receive_json()
+            message = await conn.receive()
 
-            try:
-                message = models.ChannelMessage(**data)
-
-                if message.type == models.ChannelMessageType.SIGNAL:
-                    await manager.broadcast(instance_id, message)
-
-            except ValidationError as e:
-                message = models.ChannelMessage(
-                    type="error",
-                    topic="validation",
-                )
-
-                await websocket.send_json(message.model_dump())
+            if message.type == models.ChannelMessageType.SIGNAL:
+                await manager.broadcast(instance_id, message)
 
     except WebSocketDisconnect:
         await manager.unregister_connection(conn)
