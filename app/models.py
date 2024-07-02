@@ -1,11 +1,39 @@
+from enum import IntEnum
 from pydantic import BaseModel, EmailStr, Field, HttpUrl
 from datetime import datetime
 
 
 class ChannelMessage(BaseModel):
-    type: str
+    type: str  # TODO: Replace with Enum
     topic: str
     data: dict | None = None
+
+
+# NOTE: Glonax model
+class ControlType(IntEnum):
+    ENGINE_REQUEST = 0x01
+    ENGINE_SHUTDOWN = 0x02
+    HYDRAULIC_QUICK_DISCONNECT = 0x5
+    HYDRAULIC_LOCK = 0x6
+    MACHINE_SHUTDOWN = 0x1B
+    MACHINE_ILLUMINATION = 0x1C
+    MACHINE_LIGHTS = 0x2D
+    MACHINE_HORN = 0x1E
+
+
+# NOTE: Glonax model
+class Control(BaseModel):
+    type: ControlType
+    value: bool
+
+    def to_bytes(self):
+        return bytes([self.type.value, self.value])
+
+    def from_bytes(data):
+        type = ControlType(data[0])
+        value = bool(data[1])
+
+        return Control(type=type, value=value)
 
 
 class Telemetry(BaseModel):
