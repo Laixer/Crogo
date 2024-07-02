@@ -145,6 +145,7 @@ def get_instances_live() -> list[UUID]:
 
 # TAG: App
 # TODO: Not sure if we keep the /app endpoint
+# TODO: Raise exception if instance is not connected
 @app.websocket("/app/{instance_id}/ws")
 async def app_connector(
     instance_id: UUID,
@@ -177,16 +178,26 @@ async def app_connector(
             try:
                 message = models.ChannelMessage(**data)
 
-                if message.type == "control":
-                    print(f"APP: Control: {message.data}")
-                    if not manager.is_claimed(instance_id) or instance_claimed:
-                        # TODO: Send single control message to the instance
-                        await manager.command(instance_id, message)
+                if message.type == "command":
+                    if message.topic == "control":
+                        print(f"APP: Control: {message.data}")
+                        if not manager.is_claimed(instance_id) or instance_claimed:
+                            # manager.claim(instance_id)
+                            # instance_claimed = True
+                            await manager.command(instance_id, message)
 
-                elif message.type == "motion":
-                    if not manager.is_claimed(instance_id) or instance_claimed:
-                        manager.claim(instance_id)
-                        instance_claimed = True
+                    elif message.topic == "engine":
+                        print(f"APP: Engine: {message.data}")
+                        if not manager.is_claimed(instance_id) or instance_claimed:
+                            # manager.claim(instance_id)
+                            # instance_claimed = True
+                            await manager.command(instance_id, message)
+
+                    elif message.topic == "motion":
+                        if not manager.is_claimed(instance_id) or instance_claimed:
+                            # manager.claim(instance_id)
+                            # instance_claimed = True
+                            await manager.command(instance_id, message)
 
             except ValidationError as e:
                 message = models.ChannelMessage(
