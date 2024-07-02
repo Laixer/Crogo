@@ -1,10 +1,18 @@
-from enum import IntEnum
+from uuid import UUID
+from enum import Enum, IntEnum
 from pydantic import BaseModel, EmailStr, Field, HttpUrl
 from datetime import datetime
 
 
+class ChannelMessageType(str, Enum):
+    COMMAND = "command"
+    SIGNAL = "signal"
+    CONTROL = "control"
+    ERROR = "error"
+
+
 class ChannelMessage(BaseModel):
-    type: str  # TODO: Replace with Enum
+    type: ChannelMessageType
     topic: str
     data: dict | None = None
 
@@ -56,6 +64,10 @@ class HostConfig(BaseModel):
     model: str
     version: int
     serial_number: str
+
+
+class MacheinEnrollment(BaseModel):
+    instance: UUID
 
 
 class UserLogin(BaseModel):

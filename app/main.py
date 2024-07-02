@@ -178,7 +178,7 @@ async def app_connector(
             try:
                 message = models.ChannelMessage(**data)
 
-                if message.type == "command":
+                if message.type == models.ChannelMessageType.COMMAND:
                     if message.topic == "control":
                         print(f"APP: Control: {message.data}")
                         if not manager.is_claimed(instance_id) or instance_claimed:
@@ -201,7 +201,7 @@ async def app_connector(
 
             except ValidationError as e:
                 message = models.ChannelMessage(
-                    type="error",
+                    type=models.ChannelMessageType.ERROR,
                     topic="validation",
                 )
 
@@ -215,8 +215,8 @@ async def app_connector(
 
 
 # TAG: Machine
-@app.post("/{instance_id}/enroll")
-def post_enroll():
+@app.post("/enroll")
+def post_enroll(enroll: models.MacheinEnrollment):
     # TODO: Add instance to auth (inactive) repository and return the token
     return {"token": SettingsLocal.security_key}
 
@@ -284,7 +284,7 @@ async def instance_connector(
             try:
                 message = models.ChannelMessage(**data)
 
-                if message.type == "signal":
+                if message.type == models.ChannelMessageType.SIGNAL:
                     await manager.broadcast(instance_id, message)
 
             except ValidationError as e:
