@@ -37,6 +37,7 @@ class Connection:
     async def receive(self) -> models.ChannelMessage:
         try:
             # TODO: Handle json parsing error
+            # TODO: iter_json
             data = await self.websocket.receive_json()
             return models.ChannelMessage(**data)
         except ValidationError as e:
@@ -55,8 +56,8 @@ class MessageRouter:
         self.connections.append(connection)
 
     async def unregister_connection(self, connection: Connection):
-        for callable in connection.on_disconnect:
-            await callable(connection.instance_id)
+        for on_disconnect in connection.on_disconnect:
+            await on_disconnect(connection.instance_id)
         self.connections.remove(connection)
 
     def register_on_message(
@@ -72,6 +73,20 @@ class MessageRouter:
         for connection in self.connections:
             if connection.instance_id == instance_id:
                 connection.on_message.remove(on_message)
+
+    def register_on_disconnect(
+        self, instance_id: UUID, on_disconnect: Callable[[UUID], None]
+    ):
+        for connection in self.connections:
+            if connection.instance_id == instance_id:
+                connection.on_disconnect.append(on_disconnect)
+
+    async def unregister_on_disconnect(
+        self, instance_id: UUID, on_disconnect: Callable[[UUID], None]
+    ):
+        for connection in self.connections:
+            if connection.instance_id == instance_id:
+                connection.on_disconnect.remove(on_disconnect)
 
     def is_claimed(self, instance_id: UUID) -> bool:
         for connection in self.connections:
@@ -98,8 +113,8 @@ class MessageRouter:
     async def broadcast(self, instance_id: UUID, message: models.ChannelMessage):
         for connection in self.connections:
             if connection.instance_id == instance_id:
-                for signal in connection.on_message:
-                    await signal(instance_id, message)
+                for on_message in connection.on_message:
+                    await on_message(instance_id, message)
 
 
 manager = MessageRouter()
@@ -154,7 +169,6 @@ def get_instances_live() -> list[UUID]:
 
 # TAG: App
 # TODO: Not sure if we keep the /app endpoint
-# TODO: Raise exception if instance is not connected
 @app.websocket("/app/{instance_id}/ws")
 async def app_connector(
     instance_id: UUID,
@@ -162,9 +176,11 @@ async def app_connector(
 ):
     instance_claimed = False
 
+    # TODO: Raise exception if instance is not connected
+    # TODO: Maybe call close if instance is not connected
     await websocket.accept()
 
-    async def on_machine_signal(instance_id: UUID, message: models.ChannelMessage):
+    async def on_output_signal(instance_id: UUID, message: models.ChannelMessage):
         if message.topic == "boot":
             print(f"APP: Instance {instance_id} booted")
         elif message.topic == "error":
@@ -176,7 +192,11 @@ async def app_connector(
 
         await websocket.send_json(message.model_dump())
 
-    manager.register_on_message(instance_id, on_machine_signal)
+    async def on_machine_disconnect(instance_id: UUID):
+        print(f"APP: Instance {instance_id} disconnected")
+        # TODO: Close websocket
+
+    manager.register_on_message(instance_id, on_output_signal)
 
     # FUTURE: Use context manager for claim/release
     try:
@@ -209,15 +229,11 @@ async def app_connector(
                             await manager.command(instance_id, message)
 
             except ValidationError as e:
-                message = models.ChannelMessage(
-                    type=models.ChannelMessageType.ERROR,
-                    topic="validation",
-                )
-
-                await websocket.send_json(message.model_dump_json())
+                print(e)
 
     except WebSocketDisconnect:
-        manager.unregister_on_message(instance_id, on_machine_signal)
+        manager.unregister_on_message(instance_id, on_output_signal)
+        manager.unregister_on_disconnect(instance_id, on_machine_disconnect)
     finally:
         if instance_claimed:
             manager.release(instance_id)
@@ -282,6 +298,7 @@ async def instance_connector(
 
     conn = Connection(instance_id, websocket)
 
+    # TODO: Check if instance is already registered
     manager.register_connection(conn)
     manager.register_on_message(instance_id, on_input_message)
 
