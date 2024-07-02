@@ -144,24 +144,35 @@ def get_instances_live() -> list[UUID]:
     return manager.instance_ids
 
 
-# TODO: Add Control message
+# TAG: App
 # @app.post("/{instance_id}/control", dependencies=[Security(security)])
 # def post_command(instance_id: UUID, command: models.Command):
+#     if manager.is_claimed(instance_id):
+#         raise Exception("Instance is claimed")
+    
+#     # TODO: Check if instance is connected
+
 #     message = models.ChannelMessage(
-#         type="control",
-#         topic="command",
-#         data=command.dict(),
+#         type=models.ChannelMessageType.COMMAND,
+#         topic="control",
+#         data=command.dump_model(),
 #     )
-#
+
 #     manager.command(instance_id, message)
 
-# TODO: Add Engine message
+
+# TAG: App
 # @app.post("/{instance_id}/engine", dependencies=[Security(security)])
 # def post_engine(instance_id: UUID, engine: models.Engine):
+#     if manager.is_claimed(instance_id):
+#         raise Exception("Instance is claimed")
+    
+#     # TODO: Check if instance is connected
+
 #     message = models.ChannelMessage(
-#         type="control",
+#         type=models.ChannelMessageType.COMMAND,
 #         topic="engine",
-#         data=engine.dict(),
+#         data=engine.dump_model(),
 #     )
 
 #     manager.command(instance_id, message)
