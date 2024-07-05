@@ -63,7 +63,7 @@ class Host(Base):
     kernel = Column(String, nullable=False)
     model = Column(String, nullable=False)
     serial_number = Column(String, nullable=False)  # TODO: should be unique
-    version = Column(Integer, nullable=False)
+    version = Column(String, nullable=False)
 
     def __repr__(self):
         return f"<Host(instance={self.instance}, hostname='{self.hostname}')>"

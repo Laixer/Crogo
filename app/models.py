@@ -59,10 +59,10 @@ class HostConfig(BaseModel):
     name: str | None = None
     hostname: str
     kernel: str
-    # memory_total: int # TODO: Add this field
-    # cpu_count: int # TODO: Add this field
+    memory_total: int
+    cpu_count: int
     model: str
-    version: int
+    version: str
     serial_number: str
 
 
