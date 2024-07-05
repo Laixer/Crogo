@@ -74,7 +74,8 @@ class MessageRouter:
     ):
         for connection in self.connections:
             if connection.instance_id == instance_id:
-                connection.on_message.remove(on_message)
+                if on_message in connection.on_message:
+                    connection.on_message.remove(on_message)
 
     def register_on_disconnect(
         self, instance_id: UUID, on_disconnect: Callable[[UUID], None]
@@ -83,12 +84,13 @@ class MessageRouter:
             if connection.instance_id == instance_id:
                 connection.on_disconnect.append(on_disconnect)
 
-    async def unregister_on_disconnect(
+    def unregister_on_disconnect(
         self, instance_id: UUID, on_disconnect: Callable[[UUID], None]
     ):
         for connection in self.connections:
             if connection.instance_id == instance_id:
-                connection.on_disconnect.remove(on_disconnect)
+                if on_disconnect in connection.on_disconnect:
+                    connection.on_disconnect.remove(on_disconnect)
 
     def is_claimed(self, instance_id: UUID) -> bool:
         for connection in self.connections:
