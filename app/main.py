@@ -58,6 +58,8 @@ class MessageRouter:
     async def unregister_connection(self, connection: Connection):
         for on_disconnect in connection.on_disconnect:
             await on_disconnect(connection.instance_id)
+        connection.on_disconnect.clear()
+        connection.on_message.clear()
         self.connections.remove(connection)
 
     def register_on_message(
@@ -149,7 +151,7 @@ def get_instances_live() -> list[UUID]:
 # def post_command(instance_id: UUID, command: models.Command):
 #     if manager.is_claimed(instance_id):
 #         raise Exception("Instance is claimed")
-    
+
 #     # TODO: Check if instance is connected
 
 #     message = models.ChannelMessage(
@@ -166,7 +168,7 @@ def get_instances_live() -> list[UUID]:
 # def post_engine(instance_id: UUID, engine: models.Engine):
 #     if manager.is_claimed(instance_id):
 #         raise Exception("Instance is claimed")
-    
+
 #     # TODO: Check if instance is connected
 
 #     message = models.ChannelMessage(
@@ -195,11 +197,11 @@ async def app_connector(
         if message.topic == "boot":
             print(f"APP: Instance {instance_id} booted")
         elif message.topic == "error":
-            print(f"APP: Error: {message.data}")
+            print(f"APP: Error: {message.payload}")
         elif message.topic == "status":
-            print(f"APP: Status: {message.data}")
+            print(f"APP: Status: {message.payload}")
         elif message.topic == "engine":
-            print(f"APP: Engine: {message.data}")
+            print(f"APP: Engine: {message.payload}")
 
         await websocket.send_json(message.model_dump())
 
@@ -220,14 +222,14 @@ async def app_connector(
 
                 if message.type == models.ChannelMessageType.COMMAND:
                     if message.topic == "control":
-                        print(f"APP: Control: {message.data}")
+                        print(f"APP: Control: {message.payload}")
                         if not manager.is_claimed(instance_id) or instance_claimed:
                             # manager.claim(instance_id)
                             # instance_claimed = True
                             await manager.command(instance_id, message)
 
                     elif message.topic == "engine":
-                        print(f"APP: Engine: {message.data}")
+                        print(f"APP: Engine: {message.payload}")
                         if not manager.is_claimed(instance_id) or instance_claimed:
                             # manager.claim(instance_id)
                             # instance_claimed = True
@@ -294,9 +296,9 @@ async def on_input_message(instance_id: UUID, message: models.ChannelMessage):
         if message.topic == "boot":
             print(f"MACHINE: Instance {instance_id} booted")
         elif message.topic == "status":
-            print(f"MACHINE: Status: {message.data}")
+            print(f"MACHINE: Status: {message.payload}")
         elif message.topic == "engine":
-            print(f"MACHINE: Engine: {message.data}")
+            print(f"MACHINE: Engine: {message.payload}")
 
 
 # TAG: Machine

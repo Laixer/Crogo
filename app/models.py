@@ -14,7 +14,7 @@ class ChannelMessageType(str, Enum):
 class ChannelMessage(BaseModel):
     type: ChannelMessageType
     topic: str
-    data: dict | None = None
+    payload: dict | None = None
 
 
 # NOTE: Glonax model
