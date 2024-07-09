@@ -8,6 +8,7 @@ class ChannelMessageType(str, Enum):
     COMMAND = "command"
     SIGNAL = "signal"
     CONTROL = "control"
+    PEER = "peer"
     ERROR = "error"
 
 

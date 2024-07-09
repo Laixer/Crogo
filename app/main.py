@@ -243,6 +243,10 @@ async def app_connector(
                             # instance_claimed = True
                             await manager.command(instance_id, message)
 
+                elif message.type == models.ChannelMessageType.PEER:
+                    print(f"APP: Peer sending to machine")
+                    await manager.command(instance_id, message)
+
             except ValidationError as e:
                 print(e)
 
@@ -293,14 +297,14 @@ def post_telemetry(
     # TODO: Update last contact with the instance
 
 
-async def on_input_message(instance_id: UUID, message: models.ChannelMessage):
-    if message.type == models.ChannelMessageType.SIGNAL:
-        if message.topic == "boot":
-            print(f"MACHINE: Instance {instance_id} booted")
-        elif message.topic == "status":
-            print(f"MACHINE: Status: {message.payload}")
-        elif message.topic == "engine":
-            print(f"MACHINE: Engine: {message.payload}")
+# async def on_input_message(instance_id: UUID, message: models.ChannelMessage):
+#     if message.type == models.ChannelMessageType.SIGNAL:
+#         if message.topic == "boot":
+#             print(f"MACHINE: Instance {instance_id} booted")
+#         elif message.topic == "status":
+#             print(f"MACHINE: Status: {message.payload}")
+#         elif message.topic == "engine":
+#             print(f"MACHINE: Engine: {message.payload}")
 
 
 # TAG: Machine
@@ -315,13 +319,15 @@ async def instance_connector(
 
     # TODO: Check if instance is already registered
     manager.register_connection(conn)
-    manager.register_on_message(instance_id, on_input_message)
+    # manager.register_on_message(instance_id, on_input_message)
 
     try:
         while True:
             message = await conn.receive()
 
             if message.type == models.ChannelMessageType.SIGNAL:
+                await manager.broadcast(instance_id, message)
+            elif message.type == models.ChannelMessageType.PEER:
                 await manager.broadcast(instance_id, message)
 
     except WebSocketDisconnect:
