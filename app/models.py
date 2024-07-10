@@ -65,6 +65,7 @@ class HostConfig(BaseModel):
     model: str
     version: str
     serial_number: str
+    is_live: bool = False
 
 
 class MacheinEnrollment(BaseModel):

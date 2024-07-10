@@ -17,9 +17,9 @@ router = APIRouter(
 )
 
 
-@router.get("/instances")
-def get_instances(db: Session = Depends(get_db)):
-    return repository.get_hosts(db)
+# @router.get("/instances")
+# def get_instances(db: Session = Depends(get_db)):
+#     return repository.get_hosts(db)
 
 
 # TODO: Maybe removed the 'host' path

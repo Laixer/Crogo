@@ -157,9 +157,21 @@ def post_login(user: models.UserLogin):
 
 # TODO: Add an 'is_live' field to /instances
 # TAG: App
-@app.get("/instances/live", dependencies=[Security(security)])
+@app.get("/app/instances/live", dependencies=[Security(security)])
 def get_instances_live() -> list[UUID]:
     return manager.instance_ids
+
+
+# TAG: App
+@app.get("/app/instances", dependencies=[Security(security)])
+def get_instances(db: Session = Depends(get_db)):
+    hosts = repository.get_hosts(db)
+    
+    for host in hosts:
+        if host.instance in manager.instance_ids:
+            host.is_live = True
+
+    return hosts
 
 
 # TAG: App
