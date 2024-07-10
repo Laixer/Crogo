@@ -17,16 +17,6 @@ router = APIRouter(
 )
 
 
-# TODO; Maybe move
-@router.post("/login")
-def post_login(user: models.UserLogin):
-    if user.email == "test@example.com" and user.password == "password":
-        # TODO: Return a JWT token
-        return {"token": test_key}
-    else:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-
 @router.get("/instances")
 def get_instances(db: Session = Depends(get_db)):
     return repository.get_hosts(db)

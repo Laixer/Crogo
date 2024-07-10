@@ -4,6 +4,7 @@ from pydantic import ValidationError
 
 from fastapi import (
     FastAPI,
+    HTTPException,
     Request,
     Depends,
     Security,
@@ -142,6 +143,16 @@ manager = MessageRouter()
 @app.get("/health")
 def health() -> dict[str, int]:
     return {"status": 1}
+
+
+# TODO; Maybe move
+@app.post("/auth/login")
+def post_login(user: models.UserLogin):
+    if user.email == "henk@kaas.com" and user.password == "ABC@123":
+        # TODO: Return a JWT token
+        return {"token": "ABC@123"}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
 
 # TODO: Add an 'is_live' field to /instances
