@@ -10,6 +10,7 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from app import repository, models
@@ -21,6 +22,20 @@ from app.dependencies import get_db
 app = FastAPI(docs_url=None, redoc_url=None, root_path="/api")
 
 app.include_router(user.router)
+
+origins = [
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 security = StaticKeyHTTPBearer(SettingsLocal.security_key)
 
@@ -129,57 +144,11 @@ def health() -> dict[str, int]:
     return {"status": 1}
 
 
-# TODO: Get from database
-@app.get("/manifest")
-def get_manifest() -> models.Manifest:
-    manifest = models.Manifest(
-        version="1.0.0",
-        repository=[models.ManifestRepository(url="https://edge.laixer.equipment")],
-        glonax=models.ManifestGlonax(version="3.5.9"),
-    )
-
-    return manifest
-
-
 # TODO: Add an 'is_live' field to /instances
 # TAG: App
 @app.get("/instances/live", dependencies=[Security(security)])
 def get_instances_live() -> list[UUID]:
     return manager.instance_ids
-
-
-# TAG: App
-# @app.post("/{instance_id}/control", dependencies=[Security(security)])
-# def post_command(instance_id: UUID, command: models.Command):
-#     if manager.is_claimed(instance_id):
-#         raise Exception("Instance is claimed")
-
-#     # TODO: Check if instance is connected
-
-#     message = models.ChannelMessage(
-#         type=models.ChannelMessageType.COMMAND,
-#         topic="control",
-#         data=command.dump_model(),
-#     )
-
-#     manager.command(instance_id, message)
-
-
-# TAG: App
-# @app.post("/{instance_id}/engine", dependencies=[Security(security)])
-# def post_engine(instance_id: UUID, engine: models.Engine):
-#     if manager.is_claimed(instance_id):
-#         raise Exception("Instance is claimed")
-
-#     # TODO: Check if instance is connected
-
-#     message = models.ChannelMessage(
-#         type=models.ChannelMessageType.COMMAND,
-#         topic="engine",
-#         data=engine.dump_model(),
-#     )
-
-#     manager.command(instance_id, message)
 
 
 # TAG: App
@@ -297,16 +266,6 @@ def post_telemetry(
     # TODO: Update last contact with the instance
 
 
-# async def on_input_message(instance_id: UUID, message: models.ChannelMessage):
-#     if message.type == models.ChannelMessageType.SIGNAL:
-#         if message.topic == "boot":
-#             print(f"MACHINE: Instance {instance_id} booted")
-#         elif message.topic == "status":
-#             print(f"MACHINE: Status: {message.payload}")
-#         elif message.topic == "engine":
-#             print(f"MACHINE: Engine: {message.payload}")
-
-
 # TAG: Machine
 @app.websocket("/{instance_id}/ws")
 async def instance_connector(
@@ -319,7 +278,6 @@ async def instance_connector(
 
     # TODO: Check if instance is already registered
     manager.register_connection(conn)
-    # manager.register_on_message(instance_id, on_input_message)
 
     try:
         while True:
