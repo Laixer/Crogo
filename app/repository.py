@@ -12,6 +12,8 @@ def get_hosts(db: Session) -> list[models.HostConfig]:
             name=host.name,
             hostname=host.hostname,
             kernel=host.kernel,
+            memory_total=0,
+            cpu_count=0,
             model=host.model,
             serial_number=host.serial_number,
             version=host.version,
