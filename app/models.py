@@ -56,7 +56,7 @@ class Telemetry(BaseModel):
 
 
 class HostConfig(BaseModel):
-    # instance: UUID # TODO: Add this field
+    instance: UUID | None = None  # TODO: Should always be set
     name: str | None = None
     hostname: str
     kernel: str

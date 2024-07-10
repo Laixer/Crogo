@@ -18,7 +18,7 @@ router = APIRouter(
 
 
 # TODO; Maybe move
-@router.post("/login", tags=["app"])
+@router.post("/login")
 def post_login(user: models.UserLogin):
     if user.email == "test@example.com" and user.password == "password":
         # TODO: Return a JWT token

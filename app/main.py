@@ -228,13 +228,6 @@ async def app_connector(
 
 
 # TAG: Machine
-@app.post("/enroll")
-def post_enroll(enroll: models.MacheinEnrollment):
-    # TODO: Add instance to auth (inactive) repository and return the token
-    return {"token": SettingsLocal.security_key}
-
-
-# TAG: Machine
 @app.put(
     "/{instance_id}/host",
     status_code=201,

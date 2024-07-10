@@ -9,6 +9,7 @@ def get_hosts(db: Session) -> list[models.HostConfig]:
 
     return [
         models.HostConfig(
+            instance=host.instance,
             name=host.name,
             hostname=host.hostname,
             kernel=host.kernel,
