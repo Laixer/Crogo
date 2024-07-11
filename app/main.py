@@ -188,14 +188,14 @@ async def app_connector(
     await websocket.accept()
 
     async def on_output_signal(instance_id: UUID, message: models.ChannelMessage):
-        if message.topic == "boot":
-            print(f"APP: Instance {instance_id} booted")
-        elif message.topic == "error":
-            print(f"APP: Error: {message.payload}")
-        elif message.topic == "status":
-            print(f"APP: Status: {message.payload}")
-        elif message.topic == "engine":
-            print(f"APP: Engine: {message.payload}")
+        # if message.topic == "boot":
+        #     print(f"APP: Instance {instance_id} booted")
+        # elif message.topic == "error":
+        #     print(f"APP: Error: {message.payload}")
+        # elif message.topic == "status":
+        #     print(f"APP: Status: {message.payload}")
+        # elif message.topic == "engine":
+        #     print(f"APP: Engine: {message.payload}")
 
         await websocket.send_json(message.model_dump())
 
@@ -216,14 +216,14 @@ async def app_connector(
 
                 if message.type == models.ChannelMessageType.COMMAND:
                     if message.topic == "control":
-                        print(f"APP: Control: {message.payload}")
+                        # print(f"APP: Control: {message.payload}")
                         if not manager.is_claimed(instance_id) or instance_claimed:
                             # manager.claim(instance_id)
                             # instance_claimed = True
                             await manager.command(instance_id, message)
 
                     elif message.topic == "engine":
-                        print(f"APP: Engine: {message.payload}")
+                        # print(f"APP: Engine: {message.payload}")
                         if not manager.is_claimed(instance_id) or instance_claimed:
                             # manager.claim(instance_id)
                             # instance_claimed = True
@@ -236,7 +236,7 @@ async def app_connector(
                             await manager.command(instance_id, message)
 
                 elif message.type == models.ChannelMessageType.PEER:
-                    print(f"APP: Peer sending to machine")
+                    # print(f"APP: Peer sending to machine")
                     await manager.command(instance_id, message)
 
             except ValidationError as e:
