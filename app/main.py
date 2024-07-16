@@ -166,7 +166,7 @@ def get_instances_live() -> list[UUID]:
 @app.get("/app/instances", dependencies=[Security(security)])
 def get_instances(db: Session = Depends(get_db)):
     hosts = repository.get_hosts(db)
-    
+
     for host in hosts:
         if host.instance in manager.instance_ids:
             host.is_live = True
@@ -188,15 +188,6 @@ async def app_connector(
     await websocket.accept()
 
     async def on_output_signal(instance_id: UUID, message: models.ChannelMessage):
-        # if message.topic == "boot":
-        #     print(f"APP: Instance {instance_id} booted")
-        # elif message.topic == "error":
-        #     print(f"APP: Error: {message.payload}")
-        # elif message.topic == "status":
-        #     print(f"APP: Status: {message.payload}")
-        # elif message.topic == "engine":
-        #     print(f"APP: Engine: {message.payload}")
-
         await websocket.send_json(message.model_dump())
 
     async def on_machine_disconnect(instance_id: UUID):
@@ -205,7 +196,6 @@ async def app_connector(
 
     manager.register_on_message(instance_id, on_output_signal)
 
-    # FUTURE: Use context manager for claim/release
     try:
         while True:
             # TODO: Handle non json messages
@@ -213,31 +203,7 @@ async def app_connector(
 
             try:
                 message = models.ChannelMessage(**data)
-
-                if message.type == models.ChannelMessageType.COMMAND:
-                    if message.topic == "control":
-                        # print(f"APP: Control: {message.payload}")
-                        if not manager.is_claimed(instance_id) or instance_claimed:
-                            # manager.claim(instance_id)
-                            # instance_claimed = True
-                            await manager.command(instance_id, message)
-
-                    elif message.topic == "engine":
-                        # print(f"APP: Engine: {message.payload}")
-                        if not manager.is_claimed(instance_id) or instance_claimed:
-                            # manager.claim(instance_id)
-                            # instance_claimed = True
-                            await manager.command(instance_id, message)
-
-                    elif message.topic == "motion":
-                        if not manager.is_claimed(instance_id) or instance_claimed:
-                            # manager.claim(instance_id)
-                            # instance_claimed = True
-                            await manager.command(instance_id, message)
-
-                elif message.type == models.ChannelMessageType.PEER:
-                    # print(f"APP: Peer sending to machine")
-                    await manager.command(instance_id, message)
+                await manager.command(instance_id, message)
 
             except ValidationError as e:
                 print(e)
@@ -298,11 +264,7 @@ async def instance_connector(
     try:
         while True:
             message = await conn.receive()
-
-            if message.type == models.ChannelMessageType.SIGNAL:
-                await manager.broadcast(instance_id, message)
-            elif message.type == models.ChannelMessageType.PEER:
-                await manager.broadcast(instance_id, message)
+            await manager.broadcast(instance_id, message)
 
     except WebSocketDisconnect:
         await manager.unregister_connection(conn)
