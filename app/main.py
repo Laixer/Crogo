@@ -79,9 +79,7 @@ class MessageRouter:
         connection.on_message.clear()
         self.connections.remove(connection)
 
-    def register_on_message(
-        self, instance_id: UUID, on_message: Callable[[str], None]
-    ):
+    def register_on_message(self, instance_id: UUID, on_message: Callable[[str], None]):
         for connection in self.connections:
             if connection.instance_id == instance_id:
                 connection.on_message.append(on_message)
@@ -201,7 +199,7 @@ async def app_connector(
         while True:
             # TODO: Handle non json messages
             data = await websocket.receive_json()
-            manager.to_machine(instance_id, data)
+            await manager.to_machine(instance_id, data)
 
             # try:
             #     message = models.ChannelMessage(**data)
