@@ -44,18 +44,19 @@ security = StaticKeyHTTPBearer(SettingsLocal.security_key)
 class Connection:
     is_claimed: bool = False
     on_disconnect: list[Callable[[UUID], None]] = []
-    on_message: list[Callable[[models.ChannelMessage], None]] = []
+    on_message: list[Callable[[str], None]] = []
 
     def __init__(self, instance_id: UUID, websocket: WebSocket):
         self.instance_id = instance_id
         self.websocket = websocket
 
-    async def receive(self) -> models.ChannelMessage:
+    async def receive(self):
         try:
             # TODO: Handle json parsing error
             # TODO: iter_json
             data = await self.websocket.receive_json()
-            return models.ChannelMessage(**data)
+            # return models.ChannelMessage(**data)
+            return data
         except ValidationError as e:
             # TODO: Maybe send back websocket error
             print(e)
@@ -79,14 +80,14 @@ class MessageRouter:
         self.connections.remove(connection)
 
     def register_on_message(
-        self, instance_id: UUID, on_message: Callable[[models.ChannelMessage], None]
+        self, instance_id: UUID, on_message: Callable[[str], None]
     ):
         for connection in self.connections:
             if connection.instance_id == instance_id:
                 connection.on_message.append(on_message)
 
     def unregister_on_message(
-        self, instance_id: UUID, on_message: Callable[[models.ChannelMessage], None]
+        self, instance_id: UUID, on_message: Callable[[str], None]
     ):
         for connection in self.connections:
             if connection.instance_id == instance_id:
@@ -123,14 +124,14 @@ class MessageRouter:
             if connection.instance_id == instance_id:
                 connection.is_claimed = False
 
-    async def command(self, instance_id: UUID, message: models.ChannelMessage):
+    async def to_machine(self, instance_id: UUID, message):
         for connection in self.connections:
             if connection.instance_id == instance_id:
                 if connection.is_claimed:
                     raise Exception("Instance is claimed")
-                await connection.websocket.send_json(message.model_dump())
+                await connection.websocket.send_json(message)
 
-    async def broadcast(self, instance_id: UUID, message: models.ChannelMessage):
+    async def broadcast(self, instance_id: UUID, message):
         for connection in self.connections:
             if connection.instance_id == instance_id:
                 for on_message in connection.on_message:
@@ -187,8 +188,8 @@ async def app_connector(
     # TODO: Maybe call close if instance is not connected
     await websocket.accept()
 
-    async def on_output_signal(instance_id: UUID, message: models.ChannelMessage):
-        await websocket.send_json(message.model_dump())
+    async def on_output_signal(instance_id: UUID, message):
+        await websocket.send_json(message)
 
     async def on_machine_disconnect(instance_id: UUID):
         print(f"APP: Instance {instance_id} disconnected")
@@ -200,13 +201,14 @@ async def app_connector(
         while True:
             # TODO: Handle non json messages
             data = await websocket.receive_json()
+            manager.to_machine(instance_id, data)
 
-            try:
-                message = models.ChannelMessage(**data)
-                await manager.command(instance_id, message)
+            # try:
+            #     message = models.ChannelMessage(**data)
+            #     await manager.to_machine(instance_id, message)
 
-            except ValidationError as e:
-                print(e)
+            # except ValidationError as e:
+            #     print(e)
 
     except WebSocketDisconnect:
         manager.unregister_on_message(instance_id, on_output_signal)
